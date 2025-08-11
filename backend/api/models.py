@@ -34,7 +34,6 @@ class Product(models.Model):
     product_id = models.AutoField(primary_key=True)
     product_name = models.CharField(max_length=200)
     product_description = models.TextField()
-    product_price = models.IntegerField()
     product_qty = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(UserData, on_delete=models.CASCADE, related_name='products')
