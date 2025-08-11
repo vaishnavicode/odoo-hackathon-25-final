@@ -9,6 +9,12 @@
   color: #333;
 }
 
+.rental-shop-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
 .reporting-container h2 {
   margin-bottom: 24px;
   font-weight: 700;

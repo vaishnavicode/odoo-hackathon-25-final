@@ -27,7 +27,13 @@ const Reporting = () => {
     }
   };
 
-  if (loading) return <div>Loading report...</div>;
+  if (loading) {
+    return (
+      <div className="rental-shop-container">
+        <div className="loading">Loading Reports...</div>
+      </div>
+    );
+  }
   if (error) return <div style={{ color: 'red' }}>{error}</div>;
   if (!reportData) return null;
 

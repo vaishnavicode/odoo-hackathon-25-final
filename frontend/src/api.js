@@ -1,12 +1,15 @@
 import axios from 'axios';
+import { API_ENDPOINTS as CONSTANTS_API_ENDPOINTS } from './constants.js';
 
 // Define your API base URL and endpoints
-export const API_BASE_URL = 'http://127.0.0.1:8000/api';
+export const API_BASE_URL = 'http://localhost:8000/api';
 
 export const API_ENDPOINTS = {
   REGISTER: '/register/',
   LOGIN: '/login/',
   LOGOUT: '/logout/',
+  FORGOT_PASSWORD: CONSTANTS_API_ENDPOINTS.FORGOT_PASSWORD,
+  RESET_PASSWORD: CONSTANTS_API_ENDPOINTS.RESET_PASSWORD,
 
   PRODUCTS: '/products/',
   PRODUCT_CREATE: '/products/create/',
@@ -77,6 +80,19 @@ export const authAPI = {
       localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, response.data.data.access_token);
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(response.data.data));
     }
+    return response.data;
+  },
+
+  forgotPassword: async (email) => {
+    const response = await api.post(API_ENDPOINTS.FORGOT_PASSWORD, { email });
+    return response.data;
+  },
+
+  resetPassword: async (token, newPassword) => {
+    const response = await api.post(API_ENDPOINTS.RESET_PASSWORD, { 
+      token, 
+      new_password: newPassword 
+    });
     return response.data;
   },
 

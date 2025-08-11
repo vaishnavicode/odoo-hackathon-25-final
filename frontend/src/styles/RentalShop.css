@@ -10,6 +10,7 @@
   gap: 15px;
   margin-bottom: 30px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .category-btn {
@@ -32,6 +33,29 @@
   background: #2563eb;
   color: white;
   border-color: #2563eb;
+}
+
+/* Create Product Button - inline with categories but bigger */
+.create-product-btn {
+  display: inline-block;
+  padding: 12px 24px; /* Slightly bigger than category buttons (10px 20px) */
+  font-size: 1.1rem; /* Slightly bigger font than category buttons */
+  font-weight: 600;
+  color: white;
+  background-color: #2563eb;
+  border-radius: 8px; /* Same border radius as category buttons */
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 8px rgb(37 99 235 / 0.4);
+  transition: all 0.3s ease;
+  min-width: auto;
+  width: auto;
+}
+
+.create-product-btn:hover {
+  background-color: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgb(37 99 235 / 0.5);
 }
 
 /* Shop Content Layout */
@@ -564,19 +588,4 @@
   }
 }
 
-.create-product-container, /* container for the button */
-.create-product-btn {
-  display: inline-block;
-  padding: 0.5rem 1.2rem;
-  font-size: 1rem;
-  font-weight: 600;
-  color: white;
-  background-color: #2563eb;
-  border-radius: 6px;
-  cursor: pointer;
-  border: none;
-  box-shadow: 0 2px 8px rgb(37 99 235 / 0.4);
-  transition: background-color 0.2s ease;
-  min-width: auto;  /* unset if was set */
-  width: auto;
-}
+
