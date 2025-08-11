@@ -765,3 +765,14 @@ def update_profile_view(request):
             "isSuccess": False,
             "error": str(e)
         }, status=drf_status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def user_role_list(request):
+    roles = UserRole.objects.all()
+    serializer = UserRoleSerializer(roles, many=True)
+    return JsonResponse({
+        "isSuccess": True,
+        "data": serializer.data,
+        "error": None
+    }, status=drf_status.HTTP_200_OK)

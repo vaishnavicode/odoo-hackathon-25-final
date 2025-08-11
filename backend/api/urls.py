@@ -40,5 +40,7 @@ urlpatterns = [
     # Generic URLs
     path('statuses/', status_list, name='status-list'),
     path('categories/', category_list, name='category-list'),
+    path('user-roles/', user_role_list, name='user-role-list'),
+
 
 ]

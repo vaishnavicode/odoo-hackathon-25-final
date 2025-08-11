@@ -201,3 +201,50 @@
     align-self: center;
   }
 }
+
+
+.toggle-switch {
+  position: relative;
+  width: 220px;
+  height: 40px;
+  background: #ddd;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  user-select: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.toggle-switch input[type="radio"] {
+  display: none;
+}
+
+.toggle-switch label {
+  flex: 1;
+  text-align: center;
+  line-height: 40px;
+  z-index: 2;
+  color: #555;
+  transition: color 0.3s ease;
+}
+
+.toggle-switch input[type="radio"]:checked + label {
+  color: white;
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 110px;
+  height: 34px;
+  background-color: #007bff;
+  border-radius: 30px;
+  transition: left 0.3s ease;
+  z-index: 1;
+}
+
+#vendor:checked ~ .toggle-slider {
+  left: 107px; 
+}
