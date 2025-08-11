@@ -1,7 +1,3 @@
-.env
-/venv/
-venv/
-/venv
 # Python
 __pycache__/
 *.py[cod]
@@ -12,15 +8,16 @@ build/
 *.manifest
 *.spec
 
-# Virtual environment
+# Virtual environments
 venv/
 .venv/
 ENV/
 env/
-/venv
+# Just in case duplicates
 /venv/
+/venv
 
-# Django stuff:
+# Django stuff
 *.log
 *.pot
 *.pyc
@@ -29,6 +26,10 @@ db.sqlite3
 media/
 staticfiles/
 local_settings.py
+
+# Migrations: Ignore all migration files except __init__.py recursively
+**/migrations/*.py
+!**/migrations/__init__.py
 
 # VS Code
 .vscode/
@@ -42,11 +43,7 @@ local_settings.py
 # PyCharm
 .idea/
 
-# Migrations (optional – keep if you want to ignore all migrations)
-# **/migrations/
-# !**/migrations/__init__.py
-
-# Node.js (if using npm or yarn for frontend)
+# Node.js dependencies
 node_modules/
 
 # Coverage reports
@@ -60,5 +57,5 @@ coverage.xml
 # pytest
 .pytest_cache/
 
-# test output
+# Test outputs
 junit.xml
