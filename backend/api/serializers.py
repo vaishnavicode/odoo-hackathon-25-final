@@ -62,7 +62,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'created_by_id', 'active'
         ]
         extra_kwargs = {
-            'created_at': {'read_only': True},
+            'created_at': {'read_only': True}
         }
 
 

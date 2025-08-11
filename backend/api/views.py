@@ -12,7 +12,7 @@ from django.utils import timezone
 from django.contrib.auth.hashers import check_password
 from django.contrib.auth.decorators import login_required
 
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -23,9 +23,10 @@ from .serializers import (
     UserDataSerializer, ProductSerializer, ProductPriceSerializer
 )
 
-from utils.authentication import require_access_token   
+from api.authentication import require_access_token   
 from utils.message import ERROR_MESSAGES         
 from django.contrib.auth.decorators import login_required
+from .permissions import IsOwner
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,6 @@ def login_user_view(request):
             user_access_token_expiry=expiry,
             active=True
         )
-
         return JsonResponse({
             "isSuccess": True,
             "data": {
@@ -131,7 +131,7 @@ def product_list(request):
 
 
 @api_view(['POST'])
-@login_required
+@require_access_token
 def product_create(request):
     data = request.data.copy()
     serializer = ProductSerializer(data=data)
@@ -150,6 +150,8 @@ def product_retrieve(request, id):
 
 @api_view(['PUT'])
 @login_required
+@permission_classes([IsOwner])
+@require_access_token
 def product_update(request, id):
     product = get_object_or_404(Product, product_id=id)
     serializer = ProductSerializer(product, data=request.data, partial=True)
@@ -161,6 +163,8 @@ def product_update(request, id):
 
 @api_view(['DELETE'])
 @login_required
+@permission_classes([IsOwner])
+@require_access_token
 def product_delete(request, id):
     product = get_object_or_404(Product, product_id=id)
     product.delete()
@@ -180,7 +184,7 @@ def product_price_list(request, id):
 
 
 @api_view(['POST'])
-@login_required
+@require_access_token
 def product_price_create(request, id):
     if not Product.objects.filter(product_id=id).exists():
         return Response({"isSuccess": False, "error": "Invalid product ID."}, status=status.HTTP_400_BAD_REQUEST)
@@ -203,6 +207,8 @@ def product_price_retrieve(request, id, price_id):
 
 @api_view(['PUT'])
 @login_required
+@permission_classes([IsOwner])
+@require_access_token
 def product_price_update(request, id, price_id):
     price = get_object_or_404(ProductPrice, product_price_id=price_id, product_id=id)
     serializer = ProductPriceSerializer(price, data=request.data, partial=True)
@@ -214,6 +220,8 @@ def product_price_update(request, id, price_id):
 
 @api_view(['DELETE'])
 @login_required
+@require_access_token
+@permission_classes([IsOwner])
 def product_price_delete(request, id, price_id):
     price = get_object_or_404(ProductPrice, product_price_id=price_id, product_id=id)
     price.delete()

@@ -78,7 +78,7 @@ WSGI_APPLICATION = 'rental_management.wsgi.application'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'api.authentication.AccessTokenAuthentication',
     ),
 }
 
