@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { ROUTES } from '../constants.js';
@@ -6,77 +6,92 @@ import '../styles/Register.css';
 
 const Register = () => {
   const [formData, setFormData] = useState({
-    user_email: 'admin',
+    user_email: '',
     user_name: '',
     user_contact: '',
     user_password: '',
     confirm_password: '',
-    user_role_id: 1 // Default role
+    user_role_id: null,
   });
+  const [roles, setRoles] = useState([]);
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+
   const { register } = useAuth();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    fetch('http://localhost:8000/api/user-roles/')
+      .then(res => res.json())
+      .then(response => {
+        if (response.isSuccess && response.data) {
+          setRoles(response.data);
+          const defaultRole = response.data.find(r => r.user_role_name.toLowerCase() === 'customer') || response.data[0];
+          if (defaultRole) {
+            setFormData(prev => ({ ...prev, user_role_id: defaultRole.user_role_id }));
+          }
+        } else {
+          console.error('Failed to get roles:', response.error);
+        }
+      })
+      .catch(err => {
+        console.error('Fetch error:', err);
+      });
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    // Clear error when user starts typing
+    setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
+      setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.user_email) {
       newErrors.user_email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.user_email)) {
       newErrors.user_email = 'Please enter a valid email';
     }
-    
+
     if (!formData.user_name) {
       newErrors.user_name = 'Name is required';
     }
-    
+
     if (!formData.user_contact) {
       newErrors.user_contact = 'Phone number is required';
     } else if (!/^\d{10}$/.test(formData.user_contact.replace(/\D/g, ''))) {
       newErrors.user_contact = 'Please enter a valid 10-digit phone number';
     }
-    
+
     if (!formData.user_password) {
       newErrors.user_password = 'Password is required';
     } else if (formData.user_password.length < 6) {
       newErrors.user_password = 'Password must be at least 6 characters';
     }
-    
+
     if (!formData.confirm_password) {
       newErrors.confirm_password = 'Please confirm your password';
     } else if (formData.user_password !== formData.confirm_password) {
       newErrors.confirm_password = 'Passwords do not match';
     }
-    
+
+    if (!formData.user_role_id) {
+      newErrors.user_role_id = 'Please select a user role';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
+
+    if (!validateForm()) return;
 
     setIsLoading(true);
     try {
@@ -87,7 +102,7 @@ const Register = () => {
       } else {
         setErrors({ general: response.error || 'Registration failed' });
       }
-    } catch (error) {
+    } catch {
       setErrors({ general: 'An error occurred. Please try again.' });
     } finally {
       setIsLoading(false);
@@ -142,6 +157,38 @@ const Register = () => {
               className={errors.user_contact ? 'error' : ''}
             />
             {errors.user_contact && <span className="error-message">{errors.user_contact}</span>}
+          </div>
+
+          <div className="form-group">
+            <label>User Role</label>
+            {roles.length === 2 ? (
+              <div className="toggle-switch">
+                <input
+                  type="radio"
+                  id="customer"
+                  name="user_role"
+                  value={roles[0].user_role_id}
+                  checked={formData.user_role_id === roles[0].user_role_id}
+                  onChange={() => setFormData(prev => ({ ...prev, user_role_id: roles[0].user_role_id }))}
+                />
+                <label htmlFor="customer">{roles[0].user_role_name}</label>
+
+                <input
+                  type="radio"
+                  id="vendor"
+                  name="user_role"
+                  value={roles[1].user_role_id}
+                  checked={formData.user_role_id === roles[1].user_role_id}
+                  onChange={() => setFormData(prev => ({ ...prev, user_role_id: roles[1].user_role_id }))}
+                />
+                <label htmlFor="vendor">{roles[1].user_role_name}</label>
+
+                <div className="toggle-slider"></div>
+              </div>
+            ) : (
+              <p>Loading roles...</p>
+            )}
+            {errors.user_role_id && <span className="error-message">{errors.user_role_id}</span>}
           </div>
 
           <div className="form-group">
