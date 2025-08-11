@@ -10,6 +10,7 @@ from django.views.decorators.http import require_http_methods
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.contrib.auth.hashers import check_password
+from django.contrib.auth.decorators import login_required
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -120,79 +121,100 @@ def logout_user_view(request):
         return JsonResponse({"isSuccess": False, "error": str(e)}, status=500)
 
 
-@api_view(['GET', 'POST'])
-def product_list_create(request):
-    if request.method == 'GET':
-        products = Product.objects.all()
-        serializer = ProductSerializer(products, many=True)
-        return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
+# ----------- Product Views -----------
 
-    elif request.method == 'POST':
-        serializer = ProductSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_201_CREATED)
-        return Response({"isSuccess": False, "data": None, "error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+@api_view(['GET'])
+def product_list(request):
+    products = Product.objects.all()
+    serializer = ProductSerializer(products, many=True)
+    return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
 
 
-@api_view(['GET', 'PUT', 'DELETE'])
-def product_detail(request, id):
+@api_view(['POST'])
+@login_required
+def product_create(request):
+    data = request.data.copy()
+    serializer = ProductSerializer(data=data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_201_CREATED)
+    return Response({"isSuccess": False, "data": None, "error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+def product_retrieve(request, id):
     product = get_object_or_404(Product, product_id=id)
+    serializer = ProductSerializer(product)
+    return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
 
-    if request.method == 'GET':
-        serializer = ProductSerializer(product)
+
+@api_view(['PUT'])
+@login_required
+def product_update(request, id):
+    product = get_object_or_404(Product, product_id=id)
+    serializer = ProductSerializer(product, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
         return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
-
-    elif request.method == 'PUT':
-        serializer = ProductSerializer(product, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
-        return Response({"isSuccess": False, "data": None, "error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-
-    elif request.method == 'DELETE':
-        product.delete()
-        return Response({"isSuccess": True, "data": f"Product {id} deleted", "error": None}, status=status.HTTP_204_NO_CONTENT)
+    return Response({"isSuccess": False, "data": None, "error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
-# ProductPrice Views
+@api_view(['DELETE'])
+@login_required
+def product_delete(request, id):
+    product = get_object_or_404(Product, product_id=id)
+    product.delete()
+    return Response({"isSuccess": True, "data": f"Product {id} deleted", "error": None}, status=status.HTTP_204_NO_CONTENT)
 
-@api_view(['GET', 'POST'])
-def product_price_list_create(request, id):
+
+# ----------- ProductPrice Views -----------
+
+@api_view(['GET'])
+def product_price_list(request, id):
     if not Product.objects.filter(product_id=id).exists():
         return Response({"isSuccess": False, "error": "Invalid product ID."}, status=status.HTTP_400_BAD_REQUEST)
 
-    if request.method == 'GET':
-        prices = ProductPrice.objects.filter(product_id=id)
-        serializer = ProductPriceSerializer(prices, many=True)
-        return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
-
-    elif request.method == 'POST':
-        data = request.data.copy()
-        data['product'] = id
-
-        serializer = ProductPriceSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_201_CREATED)
-        return Response({"isSuccess": False, "data": None, "error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    prices = ProductPrice.objects.filter(product_id=id)
+    serializer = ProductPriceSerializer(prices, many=True)
+    return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
 
 
-@api_view(['GET', 'PUT', 'DELETE'])
-def product_price_detail(request, id, price_id):
+@api_view(['POST'])
+@login_required
+def product_price_create(request, id):
+    if not Product.objects.filter(product_id=id).exists():
+        return Response({"isSuccess": False, "error": "Invalid product ID."}, status=status.HTTP_400_BAD_REQUEST)
+
+    data = request.data.copy()
+    data['product_id'] = id
+    serializer = ProductPriceSerializer(data=data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_201_CREATED)
+    return Response({"isSuccess": False, "data": None, "error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+def product_price_retrieve(request, id, price_id):
     price = get_object_or_404(ProductPrice, product_price_id=price_id, product_id=id)
+    serializer = ProductPriceSerializer(price)
+    return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
 
-    if request.method == 'GET':
-        serializer = ProductPriceSerializer(price)
+
+@api_view(['PUT'])
+@login_required
+def product_price_update(request, id, price_id):
+    price = get_object_or_404(ProductPrice, product_price_id=price_id, product_id=id)
+    serializer = ProductPriceSerializer(price, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
         return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
+    return Response({"isSuccess": False, "data": None, "error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-    elif request.method == 'PUT':
-        serializer = ProductPriceSerializer(price, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
-        return Response({"isSuccess": False, "data": None, "error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-    elif request.method == 'DELETE':
-        price.delete()
-        return Response({"isSuccess": True, "data": f"ProductPrice {price_id} deleted", "error": None}, status=status.HTTP_204_NO_CONTENT)
+@api_view(['DELETE'])
+@login_required
+def product_price_delete(request, id, price_id):
+    price = get_object_or_404(ProductPrice, product_price_id=price_id, product_id=id)
+    price.delete()
+    return Response({"isSuccess": True, "data": f"ProductPrice {price_id} deleted", "error": None}, status=status.HTTP_204_NO_CONTENT)
