@@ -3,6 +3,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { authAPI } from './api.js';
 import { ROUTES } from './constants.js';
 
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+
 // Import pages
 import Home from './pages/Home.jsx';
 import Login from './pages/Login.jsx';
@@ -124,6 +128,9 @@ function App() {
               
               <Route path="*" element={<NotFound />} />
             </Routes>
+                  {/* global toast container */}
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
+
           </main>
         </div>
       </Router>

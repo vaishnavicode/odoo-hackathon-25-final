@@ -2,6 +2,37 @@ from rest_framework import serializers
 from .models import *
 from django.contrib.auth.hashers import make_password
 
+from datetime import timedelta
+from django.utils.dateparse import parse_datetime
+from .models import ProductPrice
+
+def get_calculated_price(self, obj):
+    start = obj.timestamp_from
+    end = obj.timestamp_to
+    if not start or not end or start >= end:
+        total_days = 1
+    else:
+        total_days = (end - start).days or 1
+
+    prices = obj.product.prices.all()
+    
+    day_price = prices.filter(time_duration__iexact='day').first()
+    if day_price:
+        return day_price.price * total_days * obj.quantity
+    
+    hour_price = prices.filter(time_duration__iexact='hour').first()
+    if hour_price:
+        hours = total_days * 24
+        return hour_price.price * hours * obj.quantity
+    
+    week_price = prices.filter(time_duration__iexact='week').first()
+    if week_price:
+        weeks = total_days / 7
+        return week_price.price * weeks * obj.quantity
+    
+    return 0
+
+
 class UserRoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserRole
@@ -245,3 +276,58 @@ class WishlistSerializer(serializers.ModelSerializer):
         model = Wishlist
         fields = ['wishlist_id', 'user', 'user_id', 'product', 'product_id', 'added_at']
         read_only_fields = ['wishlist_id', 'added_at']
+
+
+
+class CartSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.product_name', read_only=True)
+    calculated_price = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Cart
+        fields = [
+            'cart_id', 'product_id', 'product_name',
+            'quantity', 'timestamp_from', 'timestamp_to',
+            'calculated_price', 'added_at'
+        ]
+
+    def get_calculated_price(self, obj):
+        start = obj.timestamp_from
+        end = obj.timestamp_to
+        quantity = obj.quantity or 1
+
+        # Validate dates
+        if not start or not end or start >= end:
+            return 0
+
+        delta = end - start
+        total_hours = delta.total_seconds() / 3600
+
+        prices = obj.product.prices.filter(active=True)
+        if not prices.exists():
+            return 0
+
+        # Try to find the best matching price duration (in priority order)
+        for duration in ['hour', 'day', 'week', 'month', 'year']:
+            price_obj = prices.filter(time_duration__iexact=duration).first()
+            if price_obj:
+                price_per_unit = price_obj.price
+
+                if duration == 'hour':
+                    units = total_hours
+                elif duration == 'day':
+                    units = total_hours / 24
+                elif duration == 'week':
+                    units = total_hours / (24 * 7)
+                elif duration == 'month':
+                    units = total_hours / (24 * 30) 
+                elif duration == 'year':
+                    units = total_hours / (24 * 365) 
+                else:
+                    units = total_hours / 24  # default fallback
+
+                total_price = price_per_unit * units * quantity
+                return round(total_price, 2)
+
+        # Fallback if no price found
+        return 0

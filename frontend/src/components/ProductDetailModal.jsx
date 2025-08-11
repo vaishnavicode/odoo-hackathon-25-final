@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { productsAPI } from '../api.js';
+import { toast } from 'react-toastify';
 import { wishlistAPI } from '../api.js';
 import { useAuth } from '../App.jsx';
 
 import '../styles/ProductDetailModal.css';
+
+import { cartAPI } from '../api.js'; // add this at the top
 
 const ProductDetailModal = ({ productId, open, onClose }) => {
   const [product, setProduct] = useState(null);
@@ -15,6 +18,8 @@ const ProductDetailModal = ({ productId, open, onClose }) => {
   const [rentalDates, setRentalDates] = useState({ from: '', to: '' });
   const [couponCode, setCouponCode] = useState('');
   const { isAuthenticated } = useAuth();
+
+
 
   // Refs for date inputs
   const fromDateRef = useRef(null);
@@ -60,35 +65,62 @@ const ProductDetailModal = ({ productId, open, onClose }) => {
     setQuantity(newQuantity);
   };
 
-  const handleAddToCart = () => {
-    console.log('Adding to cart:', {
-      product,
-      selectedPrice,
-      quantity,
-      rentalDates,
-      couponCode
-    });
-  };
-
-
   const handleAddToWishlist = async () => {
     if (!isAuthenticated) {
-      alert("Please login to manage your wishlist.");
+      toast.error("Please login to manage your wishlist.");
       return;
     }
   
     try {
       const result = await wishlistAPI.toggle(product.product_id);
       if (result.isSuccess) {
-        alert(`Product ${result.data.action} to wishlist`);
+        toast.success(`Product ${result.data.action} to wishlist`);
       } else {
-        alert(result.error || "Failed to update wishlist");
+        toast.error(result.error || "Failed to update wishlist");
       }
     } catch (error) {
       console.error("Wishlist error:", error);
-      alert("Something went wrong");
+      toast.error("Something went wrong");
     }
   };
+
+  const handleAddToCart = async () => {
+    if (!isAuthenticated) {
+  toast.error("Please login to add items to your cart.");
+  return;
+}
+
+
+if (!selectedPrice || !rentalDates.from || !rentalDates.to) {
+  toast.warning("Please select a price and rental dates.");
+  return;
+}
+
+    const payload = {
+      product_id: product.product_id,
+      quantity,
+      timestamp_from: new Date(rentalDates.from + "T10:00:00Z").toISOString(),
+      timestamp_to: new Date(rentalDates.to + "T10:00:00Z").toISOString(),
+    };
+
+    console.log("Payload being sent to API:", payload);
+
+    try {
+      const response = await cartAPI.add(payload);
+      console.log("Raw cartAPI.add response:", response);
+
+      if (response.isSuccess) {
+        toast.success("Item added to cart!");
+      } else {
+        toast.error(response.error || "Failed to add to cart.");
+      }
+
+    } catch (error) {
+      console.error("Add to cart error:", error);
+      toast.error("Something went wrong while adding to cart.");
+    }
+  };
+
 
   const applyCoupon = () => {
     console.log('Applying coupon:', couponCode);

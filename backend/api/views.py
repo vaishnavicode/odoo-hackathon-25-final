@@ -1,6 +1,8 @@
 # Standard library imports
 import json
 from datetime import timedelta
+from django.utils.dateparse import parse_datetime
+from django.utils.timezone import make_aware
 
 # Third-party imports
 import jwt
@@ -14,6 +16,9 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.template.loader import render_to_string
+from datetime import datetime
+from django.utils.timezone import make_aware
+
 
 from rest_framework import status as drf_status
 from rest_framework.decorators import api_view, permission_classes
@@ -847,3 +852,93 @@ def vendor_report(request):
             "data": None,
             "error": str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+@api_view(['GET'])
+@customer_required
+@permission_classes([IsOwner])
+@require_access_token
+def cart_list(request):
+    """List all items in the user's cart."""
+    user_data_id = request.user.user_data_id
+    cart_items = Cart.objects.filter(user_id=user_data_id)
+    serializer = CartSerializer(cart_items, many=True)
+    return JsonResponse({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@customer_required
+@require_access_token
+def cart_add(request):
+    user_data_id = request.user.user_data_id
+    product_id = request.data.get('product_id')
+    quantity = int(request.data.get('quantity', 1))
+    timestamp_from_str = request.data.get('timestamp_from')
+    timestamp_to_str = request.data.get('timestamp_to')
+
+    if not Product.objects.filter(product_id=product_id, active=True).exists():
+        return JsonResponse({"isSuccess": False, "error": "Invalid or inactive product."}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not timestamp_from_str or not timestamp_to_str:
+        return JsonResponse({"isSuccess": False, "error": "Both timestamp_from and timestamp_to are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        # Parse datetime safely (handles Z and timezones)
+        timestamp_from = parse_datetime(timestamp_from_str)
+        timestamp_to = parse_datetime(timestamp_to_str)
+
+        if not timestamp_from or not timestamp_to:
+            raise ValueError("Invalid datetime format. Use ISO 8601 format like 2025-08-15T10:00:00Z.")
+
+        # Ensure timezone aware
+        if timezone.is_naive(timestamp_from):
+            timestamp_from = make_aware(timestamp_from)
+        if timezone.is_naive(timestamp_to):
+            timestamp_to = make_aware(timestamp_to)
+
+        with transaction.atomic():
+            cart_item, created = Cart.objects.get_or_create(
+                user_id=user_data_id,
+                product_id=product_id,
+                timestamp_from=timestamp_from,
+                timestamp_to=timestamp_to,
+                defaults={'quantity': quantity}
+            )
+            if not created:
+                cart_item.quantity += quantity
+                cart_item.save()
+
+        return JsonResponse({"isSuccess": True, "data": CartSerializer(cart_item).data, "error": None}, status=status.HTTP_201_CREATED)
+
+    except ValueError as e:
+        return JsonResponse({"isSuccess": False, "data": None, "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        return JsonResponse({"isSuccess": False, "data": None, "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['DELETE'])
+@customer_required
+@permission_classes([IsOwner])
+@require_access_token
+def cart_remove(request, product_id):
+    """Remove a product from the cart."""
+    user_data_id = request.user.user_data_id
+    deleted, _ = Cart.objects.filter(user_id=user_data_id, product_id=product_id).delete()
+
+    if deleted:
+        return JsonResponse({"isSuccess": True, "data": f"Product {product_id} removed from cart.", "error": None}, status=status.HTTP_200_OK)
+    else:
+        return JsonResponse({"isSuccess": False, "error": "Product not found in cart."}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['DELETE'])
+@customer_required
+@permission_classes([IsOwner])
+@require_access_token
+def cart_clear(request):
+    """Clear the user's cart."""
+    user_data_id = request.user.user_data_id
+    Cart.objects.filter(user_id=user_data_id).delete()
+    return JsonResponse({"isSuccess": True, "data": "Cart cleared successfully.", "error": None}, status=status.HTTP_200_OK)

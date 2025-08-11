@@ -1,16 +1,94 @@
+/* Cart container */
 .cart-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 40px 20px;
+  max-width: 900px;
+  margin: 30px auto;
+  padding: 20px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* Title */
+.cart-container h1 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #333;
   text-align: center;
 }
 
-.cart-container h1 {
-  color: #333;
+/* Empty cart text */
+.cart-container p {
+  text-align: center;
+  color: #777;
+  font-size: 1.1rem;
+}
+
+/* Table styles */
+.cart-table {
+  width: 100%;
+  border-collapse: collapse;
   margin-bottom: 20px;
 }
 
-.cart-container p {
-  color: #666;
-  font-size: 1.1rem;
+.cart-table th,
+.cart-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #eee;
+  text-align: center;
+}
+
+.cart-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #555;
+}
+
+.cart-table tr:hover {
+  background: #fefefe;
+}
+
+/* Price styling */
+.cart-table td:nth-child(3),
+.cart-table td:nth-child(4) {
+  color: #222;
+  font-weight: 500;
+}
+
+/* Total section */
+.cart-total {
+  text-align: right;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #222;
+  padding-top: 10px;
+}
+
+/* Buttons in cart (if added later) */
+.cart-action-btn {
+  background: #ff6f61;
+  color: #fff;
+  padding: 6px 12px;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out;
+}
+
+.cart-action-btn:hover {
+  background: #e45a4d;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .cart-table th, .cart-table td {
+    padding: 8px;
+    font-size: 0.9rem;
+  }
+
+  .cart-total {
+    font-size: 1rem;
+  }
 }

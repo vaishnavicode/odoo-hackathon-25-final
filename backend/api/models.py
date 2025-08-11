@@ -243,3 +243,21 @@ class PasswordResetToken(models.Model):
 
     def is_valid(self):
         return timezone.now() < self.expires_at
+
+
+class Cart(models.Model):
+    cart_id = models.BigAutoField(primary_key=True)
+    user = models.ForeignKey(UserData, on_delete=models.CASCADE, related_name='cart_items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='in_carts')
+    quantity = models.PositiveIntegerField(default=1)
+    timestamp_from = models.DateTimeField()
+    timestamp_to = models.DateTimeField()
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'cart'
+        unique_together = ('user', 'product', 'timestamp_from', 'timestamp_to')
+        ordering = ['-added_at']
+
+    def __str__(self):
+        return f"{self.user.user_name} - {self.product.product_name} ({self.quantity})"

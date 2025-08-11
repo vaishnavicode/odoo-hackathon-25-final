@@ -23,6 +23,11 @@ export const API_ENDPOINTS = {
   WISHLIST_TOGGLE: (productId) => `/user/wishlist/toggle/${productId}/`,
 
   VENDOR_REPORT: '/vendor/report/',
+
+  CART_ADD: '/cart/add/',
+  CART_GET: '/cart/',
+  CART_REMOVE: (id) => `/cart/remove/${id}/`,
+
 };
 
 // Storage keys for tokens and user data
@@ -160,6 +165,21 @@ export const vendorAPI = {
   getReport: async () => {
     const response = await api.get(API_ENDPOINTS.VENDOR_REPORT);
     return response.data;
+  },
+};
+
+export const cartAPI = {
+  add: async (cartItem) => {
+    const { data } = await api.post(API_ENDPOINTS.CART_ADD, cartItem);
+    return data;
+  },
+  get: async () => {
+    const { data } = await api.get(API_ENDPOINTS.CART_GET);
+    return data;
+  },
+  remove: async (id) => {
+    const { data } = await api.delete(API_ENDPOINTS.CART_REMOVE(id));
+    return data;
   },
 };
 

@@ -42,5 +42,9 @@ urlpatterns = [
     path('categories/', category_list, name='category-list'),
     path('user-roles/', user_role_list, name='user-role-list'),
 
-
+    # Cart URLs
+    path('cart/', cart_list, name='cart-list'),
+    path('cart/add/', cart_add, name='cart-add'),
+    path('cart/remove/<int:product_id>/', cart_remove, name='cart-remove'),
+    path('cart/clear/', cart_clear, name='cart-clear'),
 ]

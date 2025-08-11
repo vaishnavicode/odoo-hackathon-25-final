@@ -42,6 +42,10 @@ export const ROUTES = {
   PROFILE: '/profile',
   CONTACT: '/contact',
   REPORTING: '/reporting',
+  CART_LIST: '/cart/',
+  CART_ADD: '/cart/add/',
+  CART_REMOVE: (productId) => `/cart/remove/${productId}/`,
+  CART_CLEAR: '/cart/clear/',
 
 };
 
