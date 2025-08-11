@@ -208,21 +208,18 @@ const RentalShop = () => {
 
   return (
     <div className="rental-shop-container">
-      {/* Show Create Product button only if vendor */}
+      {/* Category Navigation with Create Product button inline */}
+      <div className="category-nav">
+        {/* Show Create Product button only if vendor - now inline with categories */}
       {userRoleName === 'vendor' && (
-        <div className="create-product-container">
           <button
             className="create-product-btn"
-            onClick={() => navigate('/create-product')} // or wherever your create product page is
+          onClick={() => navigate(ROUTES.CREATE_PRODUCT)}
           >
             + Create Product
           </button>
-        </div>
       )}
 
-
-      {/* Category Navigation */}
-      <div className="category-nav">
         {PRODUCT_CATEGORIES.map((category, index) => (
           <button
             key={index}

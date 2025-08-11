@@ -131,7 +131,7 @@ const Login = () => {
                 Register here
               </Link>
             </p>
-            <Link to="/forgot-password" className="forgot-password">
+            <Link to={ROUTES.FORGOT_PASSWORD} className="forgot-password">
               Forgot username / password
             </Link>
           </div>

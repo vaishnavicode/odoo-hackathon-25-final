@@ -20,6 +20,8 @@ import Contact from './pages/Contact.jsx';
 import NotFound from './pages/NotFound.jsx';
 import Reporting from './pages/Reporting.jsx';
 import CreateProduct from './pages/CreateProduct.jsx';
+import ForgotPassword from './pages/ForgotPassword.jsx';
+import ResetPassword from './pages/ResetPassword.jsx';
 
 
 // Import components
@@ -92,13 +94,15 @@ function App() {
               <Route path={ROUTES.HOME} element={<Home />} />
               <Route path={ROUTES.LOGIN} element={<Login />} />
               <Route path={ROUTES.REGISTER} element={<Register />} />
+              <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
+              <Route path={ROUTES.RESET_PASSWORD} element={<ResetPassword />} />
               <Route path={ROUTES.RENTAL_SHOP} element={<RentalShop />} />
               <Route path={ROUTES.PRODUCT_DETAIL} element={<ProductDetail />} />
               <Route path={ROUTES.CONTACT} element={<Contact />} />
 
               
               {/* Protected Routes */}
-              <Route path="/create-product" element={
+              <Route path={ROUTES.CREATE_PRODUCT} element={
                   <ProtectedRoute>
                     <CreateProduct />
                   </ProtectedRoute>

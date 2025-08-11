@@ -7,7 +7,7 @@ from django.utils.timezone import make_aware
 # Third-party imports
 import jwt
 from django.conf import settings
-from django.contrib.auth.hashers import check_password
+from django.contrib.auth.hashers import check_password, make_password
 from django.db import transaction
 from django.db.models import F
 from django.http import Http404, JsonResponse

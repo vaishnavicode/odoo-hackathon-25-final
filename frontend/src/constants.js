@@ -6,6 +6,8 @@ export const API_ENDPOINTS = {
   REGISTER: '/register/',
   LOGIN: '/login/',
   LOGOUT: '/logout/',
+  FORGOT_PASSWORD: '/login/forgot-password/',
+  RESET_PASSWORD: '/login/reset-password/',
 
   PRODUCTS: '/products/',
   PRODUCT_CREATE: '/products/create/',
@@ -46,7 +48,9 @@ export const ROUTES = {
   CART_ADD: '/cart/add/',
   CART_REMOVE: (productId) => `/cart/remove/${productId}/`,
   CART_CLEAR: '/cart/clear/',
-
+  CREATE_PRODUCT: '/create-product',
+  FORGOT_PASSWORD: '/forgot-password',
+  RESET_PASSWORD: '/reset-password',
 };
 
 // Product Categories (placeholder)
