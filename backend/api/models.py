@@ -4,11 +4,6 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.utils.translation import gettext_lazy as _
 
 
-class DateTimeMixin(models.Model):
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    class Meta:
-        abstract = True
 
 class UserRole(models.Model):
     user_role_id = models.AutoField(primary_key=True)
@@ -17,7 +12,7 @@ class UserRole(models.Model):
     def __str__(self):
         return self.user_role_name
 
-class UserData(models.Model, DateTimeMixin):
+class UserData(models.Model):
     user_data_id = models.AutoField(primary_key=True)
     user_name = models.CharField(max_length=100)
     user_email = models.EmailField(unique=True)
@@ -25,10 +20,12 @@ class UserData(models.Model, DateTimeMixin):
     user_password = models.CharField(max_length=255)  # hashed password
     user_role = models.ForeignKey(UserRole, on_delete=models.CASCADE)
     active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     def __str__(self):
         return self.user_name
 
-class Product(models.Model, DateTimeMixin):
+class Product(models.Model):
     product_id = models.AutoField(primary_key=True)
     product_name = models.CharField(max_length=200)
     product_description = models.TextField()
@@ -36,12 +33,14 @@ class Product(models.Model, DateTimeMixin):
     product_qty = models.IntegerField()
     created_by = models.ForeignKey(UserData, on_delete=models.CASCADE)
     active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.product_name
 
 
-class ProductPrice(models.Model, DateTimeMixin):
+class ProductPrice(models.Model):
     product_price_id = models.AutoField(primary_key=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     price = models.IntegerField()
@@ -52,7 +51,7 @@ class ProductPrice(models.Model, DateTimeMixin):
         return f"{self.product.product_name} - {self.price}"
 
 
-class Status(models.Model,DateTimeMixin):
+class Status(models.Model):
     status_id = models.AutoField(primary_key=True)
     status_name = models.CharField(max_length=50)
 
@@ -60,17 +59,20 @@ class Status(models.Model,DateTimeMixin):
         return self.status_name
 
 
-class Order(models.Model, DateTimeMixin):
+class Order(models.Model):
     order_id = models.AutoField(primary_key=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     user_data = models.ForeignKey(UserData, on_delete=models.CASCADE)
     status = models.ForeignKey(Status, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
 
     def __str__(self):
         return f"Order #{self.order_id}"
 
 
-class Notification(models.Model, DateTimeMixin):
+class Notification(models.Model):
     notification_id = models.AutoField(primary_key=True)
     user_data = models.ForeignKey(UserData, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
@@ -79,11 +81,12 @@ class Notification(models.Model, DateTimeMixin):
     is_read = models.BooleanField(default=False)
     deleted = models.BooleanField(default=False)
 
+
     def __str__(self):
         return f"Notification #{self.notification_id}"
 
 
-class InvoiceType(models.Model, DateTimeMixin):
+class InvoiceType(models.Model):
     invoice_type_id = models.AutoField(primary_key=True)
     invoice_type = models.CharField(max_length=50)
 
@@ -91,12 +94,15 @@ class InvoiceType(models.Model, DateTimeMixin):
         return self.invoice_type
 
 
-class Payment(models.Model, DateTimeMixin):
+class Payment(models.Model):
     payment_id = models.AutoField(primary_key=True)
     invoice_type = models.ForeignKey(InvoiceType, on_delete=models.CASCADE)
     status = models.ForeignKey(Status, on_delete=models.CASCADE)
     payment_percentage = models.IntegerField()
     active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
 
     def __str__(self):
         return f"Payment #{self.payment_id}"
