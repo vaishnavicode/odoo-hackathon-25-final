@@ -119,8 +119,17 @@ def logout_user_view(request):
 def product_list(request):
     products = Product.objects.all().order_by('product_id')
 
+    # Get page size from query parameters, default to 10
+    page_size = request.GET.get('page_size', 10)
+    try:
+        page_size = int(page_size)
+        if page_size < 1 or page_size > 100:  # Limit page size to prevent abuse
+            page_size = 10
+    except ValueError:
+        page_size = 10
+
     paginator = PageNumberPagination()
-    paginator.page_size = 10  
+    paginator.page_size = page_size
 
     result_page = paginator.paginate_queryset(products, request)
     serializer = ProductSerializer(result_page, many=True)
@@ -132,6 +141,7 @@ def product_list(request):
             "total_items": paginator.page.paginator.count,
             "total_pages": paginator.page.paginator.num_pages,
             "current_page": paginator.page.number,
+            "page_size": page_size,
             "next": paginator.get_next_link(),
             "previous": paginator.get_previous_link()
         },

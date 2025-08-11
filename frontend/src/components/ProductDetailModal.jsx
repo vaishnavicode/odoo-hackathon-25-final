@@ -35,9 +35,11 @@ const ProductDetailModal = ({ productId, open, onClose }) => {
       ]);
       if (productResponse.isSuccess && pricesResponse.isSuccess) {
         setProduct(productResponse.data);
-        setPrices(pricesResponse.data);
-        if (pricesResponse.data.length > 0) {
-          setSelectedPrice(pricesResponse.data[0]);
+        // Handle the new paginated response structure for prices
+        const pricesData = pricesResponse.data.results || pricesResponse.data;
+        setPrices(pricesData);
+        if (pricesData.length > 0) {
+          setSelectedPrice(pricesData[0]);
         }
       } else {
         setError('Failed to fetch product details');

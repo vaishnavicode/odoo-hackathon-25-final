@@ -82,8 +82,8 @@ export const authAPI = {
 // Products API functions
 export const productsAPI = {
   // Get all products
-  getAll: async () => {
-    const response = await api.get(API_ENDPOINTS.PRODUCTS);
+  getAll: async (page = 1, pageSize = 10) => {
+    const response = await api.get(`${API_ENDPOINTS.PRODUCTS}?page=${page}&page_size=${pageSize}`);
     return response.data;
   },
 
@@ -132,6 +132,13 @@ export const productsAPI = {
   // Delete product price
   deletePrice: async (id, priceId) => {
     const response = await api.delete(API_ENDPOINTS.PRODUCT_PRICE_DELETE(id, priceId));
+    return response.data;
+  },
+};
+
+export const wishlistAPI = {
+  toggle: async (productId) => {
+    const response = await api.post(`/wishlist/toggle/${productId}/`);
     return response.data;
   },
 };
