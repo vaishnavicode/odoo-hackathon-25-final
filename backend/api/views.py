@@ -24,6 +24,7 @@ from .serializers import (
 
 from utils.authentication import require_access_token   
 from utils.message import ERROR_MESSAGES         
+from django.contrib.auth.decorators import login_required
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +118,7 @@ def logout_user_view(request):
     except Exception as e:
         logger.exception("Error in logout_user_view")
         return JsonResponse({"isSuccess": False, "error": str(e)}, status=500)
+
 
 @api_view(['GET', 'POST'])
 def product_list_create(request):
