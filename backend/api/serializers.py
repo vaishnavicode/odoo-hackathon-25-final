@@ -1,134 +1,175 @@
 from rest_framework import serializers
 from .models import (
     UserRole, UserData, Product, ProductPrice,
-    Status, Order, Notification, InvoiceType, Payment
+    Status, Order, Notification, InvoiceType,
+    Payment, UserAccessToken
 )
 
+# -------------------------
+# User Role
+# -------------------------
 class UserRoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserRole
-        fields = ['user_role_id', 'user_role_name']
+        fields = '__all__'
 
+
+# -------------------------
+# User Data
+# -------------------------
 class UserDataSerializer(serializers.ModelSerializer):
     user_role = UserRoleSerializer(read_only=True)
     user_role_id = serializers.PrimaryKeyRelatedField(
-        queryset=UserRole.objects.all(), source='user_role', write_only=True
+        queryset=UserRole.objects.all(),
+        source='user_role',
+        write_only=True
     )
 
     class Meta:
         model = UserData
         fields = [
-            'user_data_id', 'user_name', 'user_email', 'user_contact', 
-            'user_password', 'user_role', 'user_role_id', 'active', 
-            'created_at', 'updated_at'
+            'user_data_id', 'user_name', 'user_email', 'user_contact',
+            'user_address', 'user_password', 'user_role', 'user_role_id',
+            'active', 'created_at', 'updated_at'
         ]
         extra_kwargs = {
             'user_password': {'write_only': True}
         }
 
-    def create(self, validated_data):
-        # Remove user_role for creation and assign properly
-        user_role = validated_data.pop('user_role')
-        user = UserData.objects.create(**validated_data, user_role=user_role)
-        # Here you might want to hash the password if needed
-        return user
 
-    def update(self, instance, validated_data):
-        user_role = validated_data.pop('user_role', None)
-        if user_role:
-            instance.user_role = user_role
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        return instance
-
+# -------------------------
+# Product
+# -------------------------
 class ProductSerializer(serializers.ModelSerializer):
     created_by = UserDataSerializer(read_only=True)
     created_by_id = serializers.PrimaryKeyRelatedField(
-        queryset=UserData.objects.all(), source='created_by', write_only=True
+        queryset=UserData.objects.all(),
+        source='created_by',
+        write_only=True
     )
 
     class Meta:
         model = Product
-        fields = [
-            'product_id', 'product_name', 'product_description', 'product_price', 
-            'product_qty', 'created_by', 'created_by_id', 'active', 'created_at', 'updated_at'
-        ]
+        fields = '__all__'
 
+
+# -------------------------
+# Product Price
+# -------------------------
 class ProductPriceSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
     product_id = serializers.PrimaryKeyRelatedField(
-        queryset=Product.objects.all(), source='product', write_only=True
+        queryset=Product.objects.all(),
+        source='product',
+        write_only=True
     )
 
     class Meta:
         model = ProductPrice
-        fields = [
-            'product_price_id', 'product', 'product_id', 'price', 
-            'timestamp_duration', 'active'
-        ]
+        fields = '__all__'
 
+
+# -------------------------
+# Status
+# -------------------------
 class StatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = Status
-        fields = ['status_id', 'status_name']
+        fields = '__all__'
 
+
+# -------------------------
+# Order
+# -------------------------
 class OrderSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
     product_id = serializers.PrimaryKeyRelatedField(
-        queryset=Product.objects.all(), source='product', write_only=True
+        queryset=Product.objects.all(),
+        source='product',
+        write_only=True
     )
     user_data = UserDataSerializer(read_only=True)
     user_data_id = serializers.PrimaryKeyRelatedField(
-        queryset=UserData.objects.all(), source='user_data', write_only=True
+        queryset=UserData.objects.all(),
+        source='user_data',
+        write_only=True
     )
     status = StatusSerializer(read_only=True)
     status_id = serializers.PrimaryKeyRelatedField(
-        queryset=Status.objects.all(), source='status', write_only=True
+        queryset=Status.objects.all(),
+        source='status',
+        write_only=True
     )
 
     class Meta:
         model = Order
-        fields = [
-            'order_id', 'product', 'product_id', 'user_data', 'user_data_id', 
-            'status', 'status_id', 'created_at', 'updated_at'
-        ]
+        fields = '__all__'
 
+
+# -------------------------
+# Notification
+# -------------------------
 class NotificationSerializer(serializers.ModelSerializer):
     user_data = UserDataSerializer(read_only=True)
     user_data_id = serializers.PrimaryKeyRelatedField(
-        queryset=UserData.objects.all(), source='user_data', write_only=True
+        queryset=UserData.objects.all(),
+        source='user_data',
+        write_only=True
     )
     product = ProductSerializer(read_only=True)
     product_id = serializers.PrimaryKeyRelatedField(
-        queryset=Product.objects.all(), source='product', write_only=True
+        queryset=Product.objects.all(),
+        source='product',
+        write_only=True
     )
 
     class Meta:
         model = Notification
-        fields = [
-            'notification_id', 'user_data', 'user_data_id', 'product', 'product_id',
-            'notification_content', 'email_sent', 'is_read', 'deleted'
-        ]
+        fields = '__all__'
 
+
+# -------------------------
+# Invoice Type
+# -------------------------
 class InvoiceTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = InvoiceType
-        fields = ['invoice_type_id', 'invoice_type']
+        fields = '__all__'
 
+
+# -------------------------
+# Payment
+# -------------------------
 class PaymentSerializer(serializers.ModelSerializer):
     invoice_type = InvoiceTypeSerializer(read_only=True)
     invoice_type_id = serializers.PrimaryKeyRelatedField(
-        queryset=InvoiceType.objects.all(), source='invoice_type', write_only=True
+        queryset=InvoiceType.objects.all(),
+        source='invoice_type',
+        write_only=True
     )
     status = StatusSerializer(read_only=True)
     status_id = serializers.PrimaryKeyRelatedField(
-        queryset=Status.objects.all(), source='status', write_only=True
+        queryset=Status.objects.all(),
+        source='status',
+        write_only=True
     )
 
     class Meta:
         model = Payment
-        fields = [
-            'payment_id', 'invoice_type', 'invoice_type_id', 'status', 'status_id',
-            'payment_percentage', 'active', 'created_at', 'updated_at'
-        ]
+        fields = '__all__'
+
+
+# -------------------------
+# User Access Token
+# -------------------------
+class UserAccessTokenSerializer(serializers.ModelSerializer):
+    user_data = UserDataSerializer(read_only=True)
+    user_data_id = serializers.PrimaryKeyRelatedField(
+        queryset=UserData.objects.all(),
+        source='user_data',
+        write_only=True
+    )
+
+    class Meta:
+        model = UserAccessToken
+        fields = '__all__'
