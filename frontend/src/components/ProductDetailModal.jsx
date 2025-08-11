@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { productsAPI } from '../api.js';
+import { wishlistAPI } from '../api.js';
+import { useAuth } from '../App.jsx';
+
 import '../styles/ProductDetailModal.css';
 
 const ProductDetailModal = ({ productId, open, onClose }) => {
@@ -11,6 +14,7 @@ const ProductDetailModal = ({ productId, open, onClose }) => {
   const [quantity, setQuantity] = useState(1);
   const [rentalDates, setRentalDates] = useState({ from: '', to: '' });
   const [couponCode, setCouponCode] = useState('');
+  const { isAuthenticated } = useAuth();
 
   // Refs for date inputs
   const fromDateRef = useRef(null);
@@ -66,8 +70,24 @@ const ProductDetailModal = ({ productId, open, onClose }) => {
     });
   };
 
-  const handleAddToWishlist = () => {
-    console.log('Adding to wishlist:', product);
+
+  const handleAddToWishlist = async () => {
+    if (!isAuthenticated) {
+      alert("Please login to manage your wishlist.");
+      return;
+    }
+  
+    try {
+      const result = await wishlistAPI.toggle(product.product_id);
+      if (result.isSuccess) {
+        alert(`Product ${result.data.action} to wishlist`);
+      } else {
+        alert(result.error || "Failed to update wishlist");
+      }
+    } catch (error) {
+      console.error("Wishlist error:", error);
+      alert("Something went wrong");
+    }
   };
 
   const applyCoupon = () => {

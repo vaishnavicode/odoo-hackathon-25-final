@@ -138,7 +138,7 @@ export const productsAPI = {
 
 export const wishlistAPI = {
   toggle: async (productId) => {
-    const response = await api.post(`/wishlist/toggle/${productId}/`);
+    const response = await api.post(`user/wishlist/toggle/${productId}/`);
     return response.data;
   },
 };
