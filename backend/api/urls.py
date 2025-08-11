@@ -27,4 +27,10 @@ urlpatterns = [
     path('register/', register_user_view, name='register_user'),
     path('login/', login_user_view, name='login_user'),
     path('logout/', logout_user_view, name='logout_user'),
+    
+    
+    # Generic URLs
+    path('statuses/', status_list, name='status-list'),
+    path('categories/', category_list, name='category-list'),
+
 ]

@@ -51,12 +51,20 @@ class ProductSerializer(serializers.ModelSerializer):
         source='created_by',
         write_only=True
     )
+    category = serializers.StringRelatedField(read_only=True)
+    category_id = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(),
+        source='category',
+        write_only=True,
+        default=1
+    )
+    likes = serializers.IntegerField(default=0)
 
     class Meta:
         model = Product
         fields = [
-            'product_id', 'product_name', 'product_description', 'product_qty', 'created_at', 'created_by',
-            'created_by_id', 'active'
+            'product_id', 'product_name', 'product_description', 'product_qty', 'category', 'category_id',
+            'likes', 'created_at', 'created_by', 'created_by_id', 'active'
         ]
         extra_kwargs = {
             'created_at': {'read_only': True}
@@ -211,3 +219,9 @@ class DeliverySerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'created_at': {'read_only': True},
         }
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['category_id', 'category_name']
