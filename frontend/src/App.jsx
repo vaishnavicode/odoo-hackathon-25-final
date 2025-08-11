@@ -14,6 +14,9 @@ import Cart from './pages/Cart.jsx';
 import Profile from './pages/Profile.jsx';
 import Contact from './pages/Contact.jsx';
 import NotFound from './pages/NotFound.jsx';
+import Reporting from './pages/Reporting.jsx';
+import CreateProduct from './pages/CreateProduct.jsx';
+
 
 // Import components
 import Header from './components/Header.jsx';
@@ -88,8 +91,21 @@ function App() {
               <Route path={ROUTES.RENTAL_SHOP} element={<RentalShop />} />
               <Route path={ROUTES.PRODUCT_DETAIL} element={<ProductDetail />} />
               <Route path={ROUTES.CONTACT} element={<Contact />} />
+
               
               {/* Protected Routes */}
+              <Route path="/create-product" element={
+                  <ProtectedRoute>
+                    <CreateProduct />
+                  </ProtectedRoute>
+                } />
+
+                <Route path={ROUTES.REPORTING} element={
+                    <ProtectedRoute>
+                      <Reporting />
+                    </ProtectedRoute>
+                  } />
+
               <Route path={ROUTES.WISHLIST} element={
                 <ProtectedRoute>
                   <Wishlist />

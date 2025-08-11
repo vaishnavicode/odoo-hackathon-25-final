@@ -1,7 +1,37 @@
 import axios from 'axios';
-import { API_BASE_URL, API_ENDPOINTS, STORAGE_KEYS } from './constants.js';
 
-// Create axios instance with base configuration
+// Define your API base URL and endpoints
+export const API_BASE_URL = 'http://127.0.0.1:8000/api';
+
+export const API_ENDPOINTS = {
+  REGISTER: '/register/',
+  LOGIN: '/login/',
+  LOGOUT: '/logout/',
+
+  PRODUCTS: '/products/',
+  PRODUCT_CREATE: '/products/create/',
+  PRODUCT_DETAIL: (id) => `/products/${id}/`,
+  PRODUCT_UPDATE: (id) => `/products/${id}/update/`,
+  PRODUCT_DELETE: (id) => `/products/${id}/delete/`,
+
+  PRODUCT_PRICES: (id) => `/products/${id}/prices/`,
+  PRODUCT_PRICE_CREATE: (id) => `/products/${id}/prices/create/`,
+  PRODUCT_PRICE_DETAIL: (id, priceId) => `/products/${id}/prices/${priceId}/`,
+  PRODUCT_PRICE_UPDATE: (id, priceId) => `/products/${id}/prices/${priceId}/update/`,
+  PRODUCT_PRICE_DELETE: (id, priceId) => `/products/${id}/prices/${priceId}/delete/`,
+
+  WISHLIST_TOGGLE: (productId) => `/user/wishlist/toggle/${productId}/`,
+
+  VENDOR_REPORT: '/vendor/report/',
+};
+
+// Storage keys for tokens and user data
+export const STORAGE_KEYS = {
+  ACCESS_TOKEN: 'access_token',
+  USER_DATA: 'user_data',
+};
+
+// Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -9,7 +39,7 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to add auth token
+// Add Authorization header with token if available
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
@@ -18,17 +48,14 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle errors
+// Handle unauthorized errors globally
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
       localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER_DATA);
       window.location.href = '/login';
@@ -37,15 +64,13 @@ api.interceptors.response.use(
   }
 );
 
-// Auth API functions
+// Auth API
 export const authAPI = {
-  // Register new user
   register: async (userData) => {
     const response = await api.post(API_ENDPOINTS.REGISTER, userData);
     return response.data;
   },
 
-  // Login user
   login: async (credentials) => {
     const response = await api.post(API_ENDPOINTS.LOGIN, credentials);
     if (response.data.isSuccess) {
@@ -55,7 +80,6 @@ export const authAPI = {
     return response.data;
   },
 
-  // Logout user
   logout: async () => {
     try {
       await api.post(API_ENDPOINTS.LOGOUT);
@@ -67,78 +91,74 @@ export const authAPI = {
     }
   },
 
-  // Get current user data
   getCurrentUser: () => {
     const userData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
     return userData ? JSON.parse(userData) : null;
   },
 
-  // Check if user is authenticated
-  isAuthenticated: () => {
-    return !!localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-  },
+  isAuthenticated: () => !!localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN),
 };
 
-// Products API functions
+// Products API
 export const productsAPI = {
-  // Get all products
   getAll: async (page = 1, pageSize = 10) => {
     const response = await api.get(`${API_ENDPOINTS.PRODUCTS}?page=${page}&page_size=${pageSize}`);
     return response.data;
   },
 
-  // Get single product
   getById: async (id) => {
     const response = await api.get(API_ENDPOINTS.PRODUCT_DETAIL(id));
     return response.data;
   },
 
-  // Create new product
   create: async (productData) => {
-    const response = await api.post(API_ENDPOINTS.PRODUCTS, productData);
+    const response = await api.post(API_ENDPOINTS.PRODUCT_CREATE, productData);
     return response.data;
   },
 
-  // Update product
   update: async (id, productData) => {
     const response = await api.put(API_ENDPOINTS.PRODUCT_UPDATE(id), productData);
     return response.data;
   },
 
-  // Delete product
   delete: async (id) => {
     const response = await api.delete(API_ENDPOINTS.PRODUCT_DELETE(id));
     return response.data;
   },
 
-  // Get product prices
   getPrices: async (id) => {
     const response = await api.get(API_ENDPOINTS.PRODUCT_PRICES(id));
     return response.data;
   },
 
-  // Create product price
   createPrice: async (id, priceData) => {
-    const response = await api.post(API_ENDPOINTS.PRODUCT_PRICES(id), priceData);
+    const response = await api.post(API_ENDPOINTS.PRODUCT_PRICE_CREATE(id), priceData);
     return response.data;
   },
 
-  // Update product price
   updatePrice: async (id, priceId, priceData) => {
     const response = await api.put(API_ENDPOINTS.PRODUCT_PRICE_UPDATE(id, priceId), priceData);
     return response.data;
   },
 
-  // Delete product price
   deletePrice: async (id, priceId) => {
     const response = await api.delete(API_ENDPOINTS.PRODUCT_PRICE_DELETE(id, priceId));
     return response.data;
   },
 };
 
+// Wishlist API
 export const wishlistAPI = {
   toggle: async (productId) => {
-    const response = await api.post(`user/wishlist/toggle/${productId}/`);
+    const response = await api.post(API_ENDPOINTS.WISHLIST_TOGGLE(productId));
+    return response.data;
+  },
+};
+
+// Vendor API
+export const vendorAPI = {
+  getReport: async () => {
+    const response = await api.get(API_ENDPOINTS.VENDOR_REPORT);
     return response.data;
   },
 };
