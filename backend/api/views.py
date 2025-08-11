@@ -8,11 +8,13 @@ from django.conf import settings
 from django.contrib.auth.hashers import check_password
 from django.db import transaction
 from django.db.models import F
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.template.loader import render_to_string
+
 from rest_framework import status as drf_status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status
@@ -24,6 +26,7 @@ from .serializers import *
 from .permissions import IsOwner
 from api.authentication import require_access_token
 from utils.message import ERROR_MESSAGES
+from utils.email import send_mail
 
 
 @csrf_exempt
@@ -89,6 +92,89 @@ def login_user_view(request):
 
     except Exception as e:
         return JsonResponse({"isSuccess": False, "error": str(e)}, status=500)
+
+
+@api_view(['POST'])
+def forgot_password_view(request):
+    email = request.data.get('email')
+    if not email:
+        return JsonResponse({
+            "isSuccess": False, 
+            "error": "Email is required."
+        }, status=drf_status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        user = get_object_or_404(UserData, user_email=email, active=True)
+        reset_token_obj = PasswordResetToken.objects.create(user=user)
+
+        html_message = render_to_string('password_reset_email.html', {'token': reset_token_obj.token})
+
+        send_mail(
+            subject="Password Reset Request",
+            message=f"Use this token to reset your password: {reset_token_obj.token}",  
+            from_email=None,
+            recipient_list=[email],
+            html_message=html_message,  
+        )
+
+        return JsonResponse({
+            "isSuccess": True,
+            "data": "Password reset instructions sent to your email.",
+            "error": None
+        }, status=drf_status.HTTP_200_OK)
+
+    except Http404:
+        return JsonResponse({
+            "isSuccess": False,
+            "error": "User with this email does not exist or is inactive."
+        }, status=drf_status.HTTP_404_NOT_FOUND)
+
+    except Exception as e:
+        return JsonResponse({
+            "isSuccess": False,
+            "error": str(e)
+        }, status=drf_status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+def reset_password_view(request):
+    token = request.data.get('token')
+    new_password = request.data.get('new_password')
+
+    if not token or not new_password:
+        return JsonResponse({
+            "isSuccess": False,
+            "error": "Token and new password are required."
+        }, status=drf_status.HTTP_400_BAD_REQUEST)
+
+    try:
+        reset_token_obj = PasswordResetToken.objects.get(token=token)
+        if not reset_token_obj.is_valid():
+            return JsonResponse({
+                "isSuccess": False,
+                "error": "Token has expired."
+            }, status=drf_status.HTTP_400_BAD_REQUEST)
+
+        user = reset_token_obj.user
+        user.user_password = make_password(new_password)
+        user.save()
+
+        reset_token_obj.delete()
+
+        return JsonResponse({
+            "isSuccess": True,
+            "data": "Password has been reset successfully.",
+            "error": None
+        }, status=drf_status.HTTP_200_OK)
+
+    except PasswordResetToken.DoesNotExist:
+        return JsonResponse({
+            "isSuccess": False,
+            "error": "Invalid token."
+        }, status=drf_status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        return JsonResponse({"isSuccess": False, "error": str(e)}, status=drf_status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @csrf_exempt
