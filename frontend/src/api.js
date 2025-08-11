@@ -25,12 +25,13 @@ export const API_ENDPOINTS = {
 
   WISHLIST_TOGGLE: (productId) => `/user/wishlist/toggle/${productId}/`,
 
+  USER_PROFILE: '/user/profile/',
+
   VENDOR_REPORT: '/vendor/report/',
 
   CART_ADD: '/cart/add/',
   CART_GET: '/cart/',
   CART_REMOVE: (id) => `/cart/remove/${id}/`,
-
 };
 
 // Storage keys for tokens and user data
@@ -83,7 +84,7 @@ export const authAPI = {
     const response = await api.post(API_ENDPOINTS.LOGIN, credentials);
     if (response.data.isSuccess) {
       localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, response.data.data.access_token);
-      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(response.data.data));
+      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(response.data.data.user));
     }
     return response.data;
   },
@@ -112,12 +113,25 @@ export const authAPI = {
     }
   },
 
-  getCurrentUser: () => {
-    const userData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
-    return userData ? JSON.parse(userData) : null;
-  },
+    getCurrentUser: () => {
+      const userData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
+      if (!userData || userData === 'undefined') {
+        return null;
+      }
+      try {
+        return JSON.parse(userData);
+      } catch {
+        return null;
+      }
+    },
 
   isAuthenticated: () => !!localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN),
+
+  fetchProfile: async () => {
+    // Fetch profile data (user and wishlist)
+    const response = await api.get(API_ENDPOINTS.USER_PROFILE);
+    return response.data;
+  }
 };
 
 // Products API

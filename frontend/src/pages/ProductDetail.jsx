@@ -105,7 +105,7 @@ const ProductDetail = () => {
           </div>
           
           <button className="wishlist-btn" onClick={handleAddToWishlist}>
-            Add to wish list
+            Wishlist
           </button>
 
           <div className="product-description">

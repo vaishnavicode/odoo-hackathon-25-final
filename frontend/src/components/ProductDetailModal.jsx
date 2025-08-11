@@ -149,7 +149,7 @@ if (!selectedPrice || !rentalDates.from || !rentalDates.to) {
                   <i className="fas fa-box"></i>
                 </div>
                 <button className="wishlist-btn" onClick={handleAddToWishlist}>
-                  Add to wish list
+                  Wishlist
                 </button>
                 <div className="product-description">
                   <h3>Product descriptions</h3>

@@ -1,16 +1,24 @@
 .wishlist-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 40px 20px;
-  text-align: center;
+  max-width: 600px;
+  margin: 20px auto;
+  padding: 1rem;
+  font-family: Arial, sans-serif;
 }
 
-.wishlist-container h1 {
-  color: #333;
-  margin-bottom: 20px;
+.wishlist-list {
+  list-style-type: none;
+  padding: 0;
 }
 
-.wishlist-container p {
-  color: #666;
-  font-size: 1.1rem;
+.wishlist-item {
+  border: 1px solid #ddd;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 5px;
+  background-color: #fafafa;
+}
+
+.wishlist-item h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.2rem;
 }
