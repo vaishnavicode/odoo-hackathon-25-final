@@ -721,3 +721,36 @@ def user_products(request):
         },
         "error": None
     }, status=drf_status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@require_access_token
+@permission_classes([IsOwner])
+def update_profile_view(request):
+    user = request.user 
+
+    user_address = request.data.get('user_address')
+    user_contact = request.data.get('user_contact')
+    new_password = request.data.get('new_password')
+
+    if user_address is not None:
+        user.user_address = user_address
+
+    if user_contact is not None:
+        user.user_contact = user_contact
+
+    if new_password:
+        user.user_password = make_password(new_password)
+
+    try:
+        user.save()
+        return JsonResponse({
+            "isSuccess": True,
+            "data": "Profile updated successfully.",
+            "error": None
+        }, status=drf_status.HTTP_200_OK)
+    except Exception as e:
+        return JsonResponse({
+            "isSuccess": False,
+            "error": str(e)
+        }, status=drf_status.HTTP_500_INTERNAL_SERVER_ERROR)
