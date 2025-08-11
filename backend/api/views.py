@@ -130,6 +130,13 @@ def product_list(request):
     return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
 
 
+@api_view(['GET'])
+def product_retrieve(request, id):
+    product = get_object_or_404(Product, product_id=id)
+    serializer = ProductSerializer(product)
+    return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
+
+
 @api_view(['POST'])
 @require_access_token
 def product_create(request):
@@ -143,18 +150,15 @@ def product_create(request):
     return Response({"isSuccess": False, "data": None, "error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['GET'])
-def product_retrieve(request, id):
-    product = get_object_or_404(Product, product_id=id)
-    serializer = ProductSerializer(product)
-    return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
-
-
 @api_view(['PUT'])
-@permission_classes([IsOwner])
+@permission_classes([IsOwner])  
 @require_access_token
 def product_update(request, id):
     product = get_object_or_404(Product, product_id=id)
+    
+    if product.created_by != request.user:
+        return Response({"isSuccess": False, "error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+    
     serializer = ProductSerializer(product, data=request.data, partial=True)
     if serializer.is_valid():
         serializer.save()
@@ -184,12 +188,18 @@ def product_price_list(request, id):
 
 
 @api_view(['POST'])
+@permission_classes([IsOwner])
 @require_access_token
 def product_price_create(request, id):
     if not Product.objects.filter(product_id=id).exists():
         return Response({"isSuccess": False, "error": "Invalid product ID."}, status=status.HTTP_400_BAD_REQUEST)
 
     data = request.data.copy()
+    time_duration = data.get('time_duration')
+    
+    if not time_duration or time_duration.lower().strip() not in ['hour','day', 'week', 'month', 'year']:
+        return Response({"isSuccess": False, "error": "Invalid or missing time duration."}, status=status.HTTP_400_BAD_REQUEST)
+    
     data['product_id'] = id
     serializer = ProductPriceSerializer(data=data)
     if serializer.is_valid():

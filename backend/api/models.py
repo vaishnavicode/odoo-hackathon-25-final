@@ -1,6 +1,5 @@
 from django.db import models
 from django.contrib.auth.hashers import make_password
-from django.utils import timezone
 
 class UserRole(models.Model):
     user_role_id = models.BigAutoField(primary_key=True)
@@ -18,9 +17,9 @@ class UserData(models.Model):
     user_data_id = models.BigAutoField(primary_key=True)
     user_name = models.CharField(max_length=100)
     user_email = models.EmailField(unique=True, db_index=True)
-    user_contact = models.CharField(max_length=15, blank=True, null=True)
-    user_address = models.CharField(max_length=255, blank=True, null=True)  
-    user_password = models.CharField(max_length=255) 
+    user_contact = models.CharField(max_length=15, blank=True, null=True, db_index=True)
+    user_address = models.CharField(max_length=255, blank=True, null=True)
+    user_password = models.CharField(max_length=255)
     user_role = models.ForeignKey(UserRole, on_delete=models.PROTECT, related_name='users')
     active = models.BooleanField(default=True)
 
@@ -61,7 +60,7 @@ class ProductPrice(models.Model):
     product_price_id = models.BigAutoField(primary_key=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='prices')
     price = models.PositiveIntegerField()
-    time_duration = models.CharField(max_length=100)  
+    time_duration = models.CharField(max_length=100)
     active = models.BooleanField(default=True)
 
     class Meta:
@@ -100,7 +99,7 @@ class Payment(models.Model):
     payment_id = models.BigAutoField(primary_key=True)
     invoice_type = models.ForeignKey(InvoiceType, on_delete=models.PROTECT, related_name='payments')
     status = models.ForeignKey(Status, on_delete=models.PROTECT, related_name='payments')
-    payment_percentage = models.PositiveIntegerField()
+    payment_percentage = models.DecimalField(max_digits=5, decimal_places=2)
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -123,7 +122,7 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'order'
+        db_table = 'orders' 
         ordering = ['-created_at']
 
     def __str__(self):
@@ -152,7 +151,7 @@ class UserAccessToken(models.Model):
     user_data = models.ForeignKey(UserData, on_delete=models.CASCADE, related_name='access_tokens')
     user_access_token = models.CharField(max_length=255, unique=True, db_index=True)
     user_access_token_expiry = models.DateTimeField()
-    last_used_at = models.DateTimeField(blank=True, null=True)  
+    last_used_at = models.DateTimeField(blank=True, null=True)
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -162,3 +161,22 @@ class UserAccessToken(models.Model):
 
     def __str__(self):
         return f"Token #{self.user_access_token_id} for {self.user_data.user_name}"
+
+
+class Delivery(models.Model):
+    delivery_id = models.BigAutoField(primary_key=True)
+    order = models.ForeignKey('Order', on_delete=models.CASCADE, related_name='deliveries')
+    delivery_address = models.CharField(max_length=255, blank=True, null=True)
+    status = models.ForeignKey('Status', on_delete=models.CASCADE, related_name='deliveries')
+    delivery_date = models.DateTimeField()
+    delivery_person = models.CharField(max_length=100, blank=True, null=True)
+    tracking_number = models.CharField(max_length=100, blank=True, null=True)
+    active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'delivery'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Delivery #{self.delivery_id} for Order #{self.order.order_id}"
