@@ -17,10 +17,10 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from .models import (
-    UserData, UserAccessToken, Product, ProductPrice
+    UserData, UserAccessToken, Product, ProductPrice, Order, Status
 )
 from .serializers import (
-    UserDataSerializer, ProductSerializer, ProductPriceSerializer
+    UserDataSerializer, ProductSerializer, ProductPriceSerializer, OrderSerializer
 )
 
 from api.authentication import require_access_token   
@@ -206,7 +206,6 @@ def product_price_retrieve(request, id, price_id):
 
 
 @api_view(['PUT'])
-@login_required
 @permission_classes([IsOwner])
 @require_access_token
 def product_price_update(request, id, price_id):
@@ -219,10 +218,123 @@ def product_price_update(request, id, price_id):
 
 
 @api_view(['DELETE'])
-@login_required
 @require_access_token
 @permission_classes([IsOwner])
 def product_price_delete(request, id, price_id):
     price = get_object_or_404(ProductPrice, product_price_id=price_id, product_id=id)
     price.delete()
     return Response({"isSuccess": True, "data": f"ProductPrice {price_id} deleted", "error": None}, status=status.HTTP_204_NO_CONTENT)
+
+# ----------- Order Views -----------
+
+@api_view(['POST'])
+@require_access_token
+def order_place(request):
+    """
+    Place a new order.
+    Required fields: product_id, payment_id, timestamp_from, timestamp_to
+    """
+    data = request.data.copy()
+    data['user_data_id'] = request.user.user_data_id
+    
+    # Default status = "Placed"
+    try:
+        placed_status = Status.objects.get(status_name__iexact="Placed")
+        data['status_id'] = placed_status.status_id
+    except Status.DoesNotExist:
+        return Response({"isSuccess": False, "error": "Status 'Placed' not found"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    serializer = OrderSerializer(data=data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_201_CREATED)
+    return Response({"isSuccess": False, "data": None, "error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@require_access_token
+def order_cancel(request, id):
+    """
+    Cancel an existing order by ID.
+    """
+    order = get_object_or_404(Order, order_id=id, user_data=request.user)
+
+    try:
+        cancel_status = Status.objects.get(status_name__iexact="Cancelled")
+    except Status.DoesNotExist:
+        return Response({"isSuccess": False, "error": "Status 'Cancelled' not found"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    order.status = cancel_status
+    order.save()
+    serializer = OrderSerializer(order)
+    return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@require_access_token
+def order_reschedule(request, id):
+    """
+    Reschedule an existing order.
+    Required fields: timestamp_from, timestamp_to
+    """
+    order = get_object_or_404(Order, order_id=id, user_data=request.user)
+
+    timestamp_from = request.data.get('timestamp_from')
+    timestamp_to = request.data.get('timestamp_to')
+
+    if not timestamp_from or not timestamp_to:
+        return Response({"isSuccess": False, "error": "Both 'timestamp_from' and 'timestamp_to' are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        rescheduled_status = Status.objects.get(status_name__iexact="Rescheduled")
+    except Status.DoesNotExist:
+        return Response({"isSuccess": False, "error": "Status 'Rescheduled' not found"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    serializer = OrderSerializer(order, data={
+        'timestamp_from': timestamp_from,
+        'timestamp_to': timestamp_to,
+        'status_id': rescheduled_status.status_id
+    }, partial=True)
+
+    if serializer.is_valid():
+        serializer.save()
+        return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
+    return Response({"isSuccess": False, "data": None, "error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@require_access_token
+def order_return(request, id):
+    """
+    Mark an order as returned.
+    """
+    order = get_object_or_404(Order, order_id=id, user_data=request.user)
+
+    try:
+        returned_status = Status.objects.get(status_name__iexact="Returned")
+    except Status.DoesNotExist:
+        return Response({"isSuccess": False, "error": "Status 'Returned' not found"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    order.status = returned_status
+    order.save()
+    serializer = OrderSerializer(order)
+    return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@require_access_token
+def order_pickup(request, id):
+    """
+    Mark an order as picked up.
+    """
+    order = get_object_or_404(Order, order_id=id, user_data=request.user)
+
+    try:
+        pickup_status = Status.objects.get(status_name__iexact="Picked Up")
+    except Status.DoesNotExist:
+        return Response({"isSuccess": False, "error": "Status 'Picked Up' not found"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    order.status = pickup_status
+    order.save()
+    serializer = OrderSerializer(order)
+    return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
