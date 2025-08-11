@@ -11,6 +11,8 @@ class UserRoleSerializer(serializers.ModelSerializer):
 
 
 
+from django.contrib.auth.hashers import make_password
+
 class UserDataSerializer(serializers.ModelSerializer):
     user_role = UserRoleSerializer(read_only=True)
     user_role_id = serializers.PrimaryKeyRelatedField(
@@ -27,10 +29,12 @@ class UserDataSerializer(serializers.ModelSerializer):
             'active', 'created_at', 'updated_at'
         ]
         extra_kwargs = {
-            'user_password': {'write_only': True},
-            'created_at': {'read_only': True},
-            'updated_at': {'read_only': True},
+            'user_password': {'write_only': True}
         }
+
+    def create(self, validated_data):
+        validated_data['user_password'] = make_password(validated_data['user_password'])
+        return super().create(validated_data)
 
 
 class ProductSerializer(serializers.ModelSerializer):

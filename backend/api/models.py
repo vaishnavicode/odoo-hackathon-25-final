@@ -132,6 +132,7 @@ class UserAccessToken(models.Model):
     user_data = models.ForeignKey(UserData, on_delete=models.CASCADE, related_name='access_tokens')
     user_access_token = models.CharField(max_length=255)
     user_access_token_expiry = models.DateTimeField()
+    last_used_at = models.DateTimeField(blank=True, null=True)  
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
