@@ -2,3 +2,63 @@
 /venv/
 venv/
 /venv
+# Python
+__pycache__/
+*.py[cod]
+*.egg
+*.egg-info/
+dist/
+build/
+*.manifest
+*.spec
+
+# Virtual environment
+venv/
+.venv/
+ENV/
+env/
+/venv
+/venv/
+
+# Django stuff:
+*.log
+*.pot
+*.pyc
+*.sqlite3
+db.sqlite3
+media/
+staticfiles/
+local_settings.py
+
+# VS Code
+.vscode/
+
+# Environment variables
+.env
+
+# macOS
+.DS_Store
+
+# PyCharm
+.idea/
+
+# Migrations (optional – keep if you want to ignore all migrations)
+# **/migrations/
+# !**/migrations/__init__.py
+
+# Node.js (if using npm or yarn for frontend)
+node_modules/
+
+# Coverage reports
+htmlcov/
+.coverage
+coverage.xml
+
+# mypy
+.mypy_cache/
+
+# pytest
+.pytest_cache/
+
+# test output
+junit.xml
