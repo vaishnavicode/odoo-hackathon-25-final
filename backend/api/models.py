@@ -198,3 +198,30 @@ class Delivery(models.Model):
 
     def __str__(self):
         return f"Delivery #{self.delivery_id} for Order #{self.order.order_id}"
+
+
+class ProductLike(models.Model):
+    user = models.ForeignKey(UserData, on_delete=models.CASCADE, related_name='liked_products')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='product_likes')  # changed here
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'product')
+
+    def __str__(self):
+        return f"{self.user} liked {self.product}"
+
+
+class Wishlist(models.Model):
+    wishlist_id = models.BigAutoField(primary_key=True)
+    user = models.ForeignKey(UserData, on_delete=models.CASCADE, related_name='wishlist_items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='wishlisted_by')
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'wishlist'
+        unique_together = ('user', 'product')
+        ordering = ['-added_at']
+
+    def __str__(self):
+        return f"{self.user.user_name} - {self.product.product_name}"

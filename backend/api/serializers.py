@@ -225,3 +225,23 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['category_id', 'category_name']
+
+
+class WishlistSerializer(serializers.ModelSerializer):
+    user_id = serializers.PrimaryKeyRelatedField(
+        queryset=UserData.objects.all(),
+        source='user',
+        write_only=True
+    )
+    product_id = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.all(),
+        source='product',
+        write_only=True
+    )
+    user = serializers.StringRelatedField(read_only=True)
+    product = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = Wishlist
+        fields = ['wishlist_id', 'user', 'user_id', 'product', 'product_id', 'added_at']
+        read_only_fields = ['wishlist_id', 'added_at']

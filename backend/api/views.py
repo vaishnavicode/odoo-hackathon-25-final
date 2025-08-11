@@ -2,6 +2,7 @@ import logging
 import json
 import jwt
 from datetime import timedelta
+from django.db.models import F
 from rest_framework import status as drf_status
 
 from django.conf import settings
@@ -133,13 +134,19 @@ def product_retrieve(request, id):
     serializer = ProductSerializer(product)
     return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
 
-
 @api_view(['POST'])
 @require_access_token
 def product_create(request):
     data = request.data.copy()
-    data['created_by_id'] = request.user.user_data_id  
-    
+    data['created_by_id'] = request.user.user_data_id
+
+    category_name = data.get('category_name')
+    if category_name:
+        category, created = Category.objects.get_or_create(category_name=category_name)
+        data['category_id'] = category.category_id
+    else:
+        data['category_id'] = 1
+
     serializer = ProductSerializer(data=data)
     if serializer.is_valid():
         serializer.save()
@@ -148,15 +155,22 @@ def product_create(request):
 
 
 @api_view(['PUT'])
-@permission_classes([IsOwner])  
+@permission_classes([IsOwner])
 @require_access_token
 def product_update(request, id):
     product = get_object_or_404(Product, product_id=id)
-    
+
     if product.created_by != request.user:
         return Response({"isSuccess": False, "error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
-    
-    serializer = ProductSerializer(product, data=request.data, partial=True)
+
+    data = request.data.copy()
+
+    category_name = data.get('category_name')
+    if category_name:
+        category, created = Category.objects.get_or_create(category_name=category_name)
+        data['category_id'] = category.category_id
+
+    serializer = ProductSerializer(product, data=data, partial=True)
     if serializer.is_valid():
         serializer.save()
         return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
@@ -170,6 +184,46 @@ def product_delete(request, id):
     product = get_object_or_404(Product, product_id=id)
     product.delete()
     return Response({"isSuccess": True, "data": f"Product {id} deleted", "error": None}, status=status.HTTP_204_NO_CONTENT)
+
+
+
+@api_view(['POST'])
+@permission_classes([IsOwner])
+@require_access_token
+def like_product(request, product_id):
+    user = request.user
+    product = get_object_or_404(Product, product_id=product_id)
+
+    try:
+        with transaction.atomic():
+            like_obj = ProductLike.objects.filter(user=user, product=product).first()
+            
+            if like_obj:
+                # User already liked this product — unlike it
+                like_obj.delete()
+                product.likes = F('likes') - 1
+                action = "unliked"
+            else:
+                # Not liked yet — create like
+                ProductLike.objects.create(user=user, product=product)
+                product.likes = F('likes') + 1
+                action = "liked"
+
+            product.save(update_fields=['likes'])
+            product.refresh_from_db()
+
+        return Response({
+            "isSuccess": True,
+            "data": {
+                "product_id": product.product_id,
+                "likes": product.likes,
+                "action": action
+            },
+            "error": None
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({"isSuccess": False, "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 # ----------- ProductPrice Views -----------
@@ -420,3 +474,74 @@ def category_list(request):
         "data": serializer.data,
         "error": None
     }, status=drf_status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@require_access_token
+def user_profile(request):
+    user = request.user 
+
+    user_data = {
+        "user_data_id": user.user_data_id,
+        "user_name": user.user_name,
+        "user_email": user.user_email,
+        "user_contact": user.user_contact,
+        "user_address": user.user_address,
+        "active": user.active,
+        "created_at": user.created_at,
+        "updated_at": user.updated_at,
+    }
+
+    wishlist_items = Wishlist.objects.filter(user=user).select_related('product')
+    
+    wishlist_data = [
+        {
+            "product_id": item.product.product_id,
+            "product_name": item.product.product_name,
+            "product_description": item.product.product_description,
+            "product_qty": item.product.product_qty,
+            "likes": item.product.likes,
+            "active": item.product.active,
+        }
+        for item in wishlist_items
+    ]
+
+    return Response({
+        "isSuccess": True,
+        "data": {
+            "user": user_data,
+            "wishlist": wishlist_data
+        },
+        "error": None
+    }, status=drf_status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsOwner])
+@require_access_token
+def toggle_wishlist(request, product_id):
+    user = request.user
+    product = get_object_or_404(Product, product_id=product_id)
+
+    try:
+        with transaction.atomic():
+            wishlist_item = Wishlist.objects.filter(user=user, product=product).first()
+
+            if wishlist_item:
+                wishlist_item.delete()
+                action = "removed"
+            else:
+                Wishlist.objects.create(user=user, product=product)
+                action = "added"
+
+        return Response({
+            "isSuccess": True,
+            "data": {
+                "product_id": product.product_id,
+                "action": action
+            },
+            "error": None
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({"isSuccess": False, "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

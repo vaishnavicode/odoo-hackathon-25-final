@@ -15,6 +15,7 @@ urlpatterns = [
     path('products/<int:id>/prices/<int:price_id>/', product_price_retrieve, name='product-price-retrieve'),
     path('products/<int:id>/prices/<int:price_id>/update/', product_price_update, name='product-price-update'),
     path('products/<int:id>/prices/<int:price_id>/delete/', product_price_delete, name='product-price-delete'),
+    path('product/<int:product_id>/like', like_product, name='like-product'),
 
     # Order URLs
     path('orders/', order_list, name='order-list'),
@@ -23,11 +24,13 @@ urlpatterns = [
     path('orders/<int:order_id>/confirm', order_confirm, name='order-retrieve'),
     path('orders/<int:order_id>/cancel/', cancel_order, name='order-cancel'),
 
-    # Auth URLs
+    # User URLs
     path('register/', register_user_view, name='register_user'),
     path('login/', login_user_view, name='login_user'),
     path('logout/', logout_user_view, name='logout_user'),
-    
+    path('user/profile/', user_profile, name='user-profile'),
+    path('user/wishlist/toggle/<int:product_id>/', toggle_wishlist, name='toggle-wishlist'),
+
     
     # Generic URLs
     path('statuses/', status_list, name='status-list'),
