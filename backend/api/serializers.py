@@ -1,16 +1,24 @@
 from rest_framework import serializers
 from .models import *
 
+# -------------------------
+# User Role
+# -------------------------
 class UserRoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserRole
-        fields = ['user_role_id', 'user_role_name']
+        fields = '__all__'
 
+
+
+from django.contrib.auth.hashers import make_password
 
 class UserDataSerializer(serializers.ModelSerializer):
     user_role = UserRoleSerializer(read_only=True)
     user_role_id = serializers.PrimaryKeyRelatedField(
-        queryset=UserRole.objects.all(), source='user_role', write_only=True
+        queryset=UserRole.objects.all(),
+        source='user_role',
+        write_only=True
     )
 
     class Meta:
@@ -21,9 +29,7 @@ class UserDataSerializer(serializers.ModelSerializer):
             'active', 'created_at', 'updated_at'
         ]
         extra_kwargs = {
-            'user_password': {'write_only': True},
-            'created_at': {'read_only': True},
-            'updated_at': {'read_only': True},
+            'user_password': {'write_only': True}
         }
 
     def create(self, validated_data):
@@ -47,7 +53,9 @@ class UserDataSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     created_by = UserDataSerializer(read_only=True)
     created_by_id = serializers.PrimaryKeyRelatedField(
-        queryset=UserData.objects.all(), source='created_by', write_only=True
+        queryset=UserData.objects.all(),
+        source='created_by',
+        write_only=True
     )
 
     class Meta:
@@ -64,7 +72,9 @@ class ProductSerializer(serializers.ModelSerializer):
 class ProductPriceSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
     product_id = serializers.PrimaryKeyRelatedField(
-        queryset=Product.objects.all(), source='product', write_only=True
+        queryset=Product.objects.all(),
+        source='product',
+        write_only=True
     )
 
     class Meta:
@@ -112,7 +122,9 @@ class PaymentSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
     product_id = serializers.PrimaryKeyRelatedField(
-        queryset=Product.objects.all(), source='product', write_only=True
+        queryset=Product.objects.all(),
+        source='product',
+        write_only=True
     )
     user_data = UserDataSerializer(read_only=True)
     user_data_id = serializers.PrimaryKeyRelatedField(
@@ -124,7 +136,9 @@ class OrderSerializer(serializers.ModelSerializer):
     )
     status = StatusSerializer(read_only=True)
     status_id = serializers.PrimaryKeyRelatedField(
-        queryset=Status.objects.all(), source='status', write_only=True
+        queryset=Status.objects.all(),
+        source='status',
+        write_only=True
     )
 
     class Meta:
@@ -142,11 +156,15 @@ class OrderSerializer(serializers.ModelSerializer):
 class NotificationSerializer(serializers.ModelSerializer):
     user_data = UserDataSerializer(read_only=True)
     user_data_id = serializers.PrimaryKeyRelatedField(
-        queryset=UserData.objects.all(), source='user_data', write_only=True
+        queryset=UserData.objects.all(),
+        source='user_data',
+        write_only=True
     )
     product = ProductSerializer(read_only=True)
     product_id = serializers.PrimaryKeyRelatedField(
-        queryset=Product.objects.all(), source='product', write_only=True
+        queryset=Product.objects.all(),
+        source='product',
+        write_only=True
     )
 
     class Meta:
