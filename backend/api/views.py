@@ -1,32 +1,29 @@
-import logging
+# Standard library imports
 import json
-import jwt
 from datetime import timedelta
-from django.db.models import F
-from rest_framework import status as drf_status
 
+# Third-party imports
+import jwt
 from django.conf import settings
+from django.contrib.auth.hashers import check_password
+from django.db import transaction
+from django.db.models import F
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from django.contrib.auth.hashers import check_password
-
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from rest_framework import status as drf_status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.response import Response
 from rest_framework import status
-from django.db import transaction
+from rest_framework.pagination import PageNumberPagination
 
+# Local application imports
 from .models import *
 from .serializers import *
-
-from api.authentication import require_access_token   
-from utils.message import ERROR_MESSAGES         
-from django.contrib.auth.decorators import login_required
 from .permissions import IsOwner
-
-logger = logging.getLogger(__name__)
+from api.authentication import require_access_token
+from utils.message import ERROR_MESSAGES
 
 
 @csrf_exempt
@@ -42,7 +39,6 @@ def register_user_view(request):
     except json.JSONDecodeError:
         return JsonResponse({"isSuccess": False, "data": None, "error": "Invalid JSON"}, status=400)
     except Exception as e:
-        logger.exception("Error in register_user_view")
         return JsonResponse({"isSuccess": False, "data": None, "error": str(e)}, status=500)
 
 
@@ -92,7 +88,6 @@ def login_user_view(request):
         }, status=200)
 
     except Exception as e:
-        logger.exception("Error in login_user_view")
         return JsonResponse({"isSuccess": False, "error": str(e)}, status=500)
 
 
@@ -115,7 +110,6 @@ def logout_user_view(request):
             return JsonResponse({"isSuccess": False, "error": "Invalid or expired token"}, status=401)
 
     except Exception as e:
-        logger.exception("Error in logout_user_view")
         return JsonResponse({"isSuccess": False, "error": str(e)}, status=500)
 
 
@@ -123,16 +117,34 @@ def logout_user_view(request):
 
 @api_view(['GET'])
 def product_list(request):
-    products = Product.objects.all()
-    serializer = ProductSerializer(products, many=True)
-    return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
+    products = Product.objects.all().order_by('product_id')
+
+    paginator = PageNumberPagination()
+    paginator.page_size = 10  
+
+    result_page = paginator.paginate_queryset(products, request)
+    serializer = ProductSerializer(result_page, many=True)
+
+    return JsonResponse({
+        "isSuccess": True,
+        "data": {
+            "results": serializer.data,
+            "total_items": paginator.page.paginator.count,
+            "total_pages": paginator.page.paginator.num_pages,
+            "current_page": paginator.page.number,
+            "next": paginator.get_next_link(),
+            "previous": paginator.get_previous_link()
+        },
+        "error": None
+    }, status=drf_status.HTTP_200_OK)
 
 
 @api_view(['GET'])
 def product_retrieve(request, id):
     product = get_object_or_404(Product, product_id=id)
     serializer = ProductSerializer(product)
-    return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
+    return JsonResponse({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
+
 
 @api_view(['POST'])
 @require_access_token
@@ -150,8 +162,8 @@ def product_create(request):
     serializer = ProductSerializer(data=data)
     if serializer.is_valid():
         serializer.save()
-        return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_201_CREATED)
-    return Response({"isSuccess": False, "data": None, "error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_201_CREATED)
+    return JsonResponse({"isSuccess": False, "data": None, "error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['PUT'])
@@ -161,7 +173,7 @@ def product_update(request, id):
     product = get_object_or_404(Product, product_id=id)
 
     if product.created_by != request.user:
-        return Response({"isSuccess": False, "error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+        return JsonResponse({"isSuccess": False, "error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
 
     data = request.data.copy()
 
@@ -173,8 +185,8 @@ def product_update(request, id):
     serializer = ProductSerializer(product, data=data, partial=True)
     if serializer.is_valid():
         serializer.save()
-        return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
-    return Response({"isSuccess": False, "data": None, "error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
+    return JsonResponse({"isSuccess": False, "data": None, "error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['DELETE'])
@@ -183,8 +195,7 @@ def product_update(request, id):
 def product_delete(request, id):
     product = get_object_or_404(Product, product_id=id)
     product.delete()
-    return Response({"isSuccess": True, "data": f"Product {id} deleted", "error": None}, status=status.HTTP_204_NO_CONTENT)
-
+    return JsonResponse({"isSuccess": True, "data": f"Product {id} deleted", "error": None}, status=status.HTTP_204_NO_CONTENT)
 
 
 @api_view(['POST'])
@@ -199,12 +210,10 @@ def like_product(request, product_id):
             like_obj = ProductLike.objects.filter(user=user, product=product).first()
             
             if like_obj:
-                # User already liked this product — unlike it
                 like_obj.delete()
                 product.likes = F('likes') - 1
                 action = "unliked"
             else:
-                # Not liked yet — create like
                 ProductLike.objects.create(user=user, product=product)
                 product.likes = F('likes') + 1
                 action = "liked"
@@ -212,7 +221,7 @@ def like_product(request, product_id):
             product.save(update_fields=['likes'])
             product.refresh_from_db()
 
-        return Response({
+        return JsonResponse({
             "isSuccess": True,
             "data": {
                 "product_id": product.product_id,
@@ -223,7 +232,7 @@ def like_product(request, product_id):
         }, status=status.HTTP_200_OK)
 
     except Exception as e:
-        return Response({"isSuccess": False, "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({"isSuccess": False, "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 # ----------- ProductPrice Views -----------
@@ -231,11 +240,31 @@ def like_product(request, product_id):
 @api_view(['GET'])
 def product_price_list(request, id):
     if not Product.objects.filter(product_id=id).exists():
-        return Response({"isSuccess": False, "error": "Invalid product ID."}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({
+            "isSuccess": False,
+            "error": "Invalid product ID."
+        }, status=status.HTTP_400_BAD_REQUEST)
 
-    prices = ProductPrice.objects.filter(product_id=id)
-    serializer = ProductPriceSerializer(prices, many=True)
-    return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
+    prices = ProductPrice.objects.filter(product_id=id).order_by('product_price_id')
+
+    paginator = PageNumberPagination()
+    paginator.page_size = 10
+
+    result_page = paginator.paginate_queryset(prices, request)
+    serializer = ProductPriceSerializer(result_page, many=True)
+
+    return JsonResponse({
+        "isSuccess": True,
+        "data": {
+            "results": serializer.data,
+            "total_items": paginator.page.paginator.count,
+            "total_pages": paginator.page.paginator.num_pages,
+            "current_page": paginator.page.number,
+            "next": paginator.get_next_link(),
+            "previous": paginator.get_previous_link()
+        },
+        "error": None
+    }, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
@@ -243,27 +272,27 @@ def product_price_list(request, id):
 @require_access_token
 def product_price_create(request, id):
     if not Product.objects.filter(product_id=id).exists():
-        return Response({"isSuccess": False, "error": "Invalid product ID."}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({"isSuccess": False, "error": "Invalid product ID."}, status=status.HTTP_400_BAD_REQUEST)
 
     data = request.data.copy()
     time_duration = data.get('time_duration')
     
     if not time_duration or time_duration.lower().strip() not in ['hour','day', 'week', 'month', 'year']:
-        return Response({"isSuccess": False, "error": "Invalid or missing time duration."}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({"isSuccess": False, "error": "Invalid or missing time duration."}, status=status.HTTP_400_BAD_REQUEST)
     
     data['product_id'] = id
     serializer = ProductPriceSerializer(data=data)
     if serializer.is_valid():
         serializer.save()
-        return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_201_CREATED)
-    return Response({"isSuccess": False, "data": None, "error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_201_CREATED)
+    return JsonResponse({"isSuccess": False, "data": None, "error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET'])
 def product_price_retrieve(request, id, price_id):
     price = get_object_or_404(ProductPrice, product_price_id=price_id, product_id=id)
     serializer = ProductPriceSerializer(price)
-    return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
+    return JsonResponse({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
 
 
 @api_view(['PUT'])
@@ -274,8 +303,8 @@ def product_price_update(request, id, price_id):
     serializer = ProductPriceSerializer(price, data=request.data, partial=True)
     if serializer.is_valid():
         serializer.save()
-        return Response({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
-    return Response({"isSuccess": False, "data": None, "error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({"isSuccess": True, "data": serializer.data, "error": None}, status=status.HTTP_200_OK)
+    return JsonResponse({"isSuccess": False, "data": None, "error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['DELETE'])
@@ -284,7 +313,7 @@ def product_price_update(request, id, price_id):
 def product_price_delete(request, id, price_id):
     price = get_object_or_404(ProductPrice, product_price_id=price_id, product_id=id)
     price.delete()
-    return Response({"isSuccess": True, "data": f"ProductPrice {price_id} deleted", "error": None}, status=status.HTTP_204_NO_CONTENT)
+    return JsonResponse({"isSuccess": True, "data": f"ProductPrice {price_id} deleted", "error": None}, status=status.HTTP_204_NO_CONTENT)
 
 
 # ----------- Order Views -----------
@@ -293,22 +322,35 @@ def product_price_delete(request, id, price_id):
 @require_access_token
 def order_list(request, id=None):
     user_id = request.user.user_data_id  
-    
+
     orders = Order.objects.filter(user_data_id=user_id)
-    
+
     if id:
         orders = orders.filter(order_id=id)
         if not orders.exists():
-            return Response(
+            return JsonResponse(
                 {"isSuccess": False, "error": "Invalid order ID for this user."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-    serializer = OrderSerializer(orders, many=True)
-    return Response(
-        {"isSuccess": True, "data": serializer.data, "error": None},
-        status=status.HTTP_200_OK
-    )
+    paginator = PageNumberPagination()
+    paginator.page_size = 10  
+
+    result_page = paginator.paginate_queryset(orders, request)
+    serializer = OrderSerializer(result_page, many=True)
+
+    return JsonResponse({
+        "isSuccess": True,
+        "data": {
+            "results": serializer.data,
+            "total_items": paginator.page.paginator.count,
+            "total_pages": paginator.page.paginator.num_pages,
+            "current_page": paginator.page.number,
+            "next": paginator.get_next_link(),
+            "previous": paginator.get_previous_link()
+        },
+        "error": None
+    }, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
@@ -320,10 +362,10 @@ def order_create(request):
     try:
         user_data_id = request.user.user_data_id
     except AttributeError:
-        return Response({"isSuccess": False, "error": "User data not found for this user."}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({"isSuccess": False, "error": "User data not found for this user."}, status=status.HTTP_400_BAD_REQUEST)
 
     if not Product.objects.filter(product_id=data.get('product_id')).exists():
-        return Response({"isSuccess": False, "error": "Invalid product ID."}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({"isSuccess": False, "error": "Invalid product ID."}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
         with transaction.atomic():
@@ -335,7 +377,7 @@ def order_create(request):
             }
             payment_serializer = PaymentSerializer(data=payment_data)
             if not payment_serializer.is_valid():
-                return Response({"isSuccess": False, "error": payment_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+                return JsonResponse({"isSuccess": False, "error": payment_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
             payment = payment_serializer.save()
 
             order_data = {
@@ -351,7 +393,7 @@ def order_create(request):
                 raise ValueError(order_serializer.errors)
             order_serializer.save()
 
-        return Response({
+        return JsonResponse({
             "isSuccess": True,
             "data": {
                 "payment": payment_serializer.data,
@@ -361,7 +403,7 @@ def order_create(request):
         }, status=status.HTTP_201_CREATED)
 
     except Exception as e:
-        return Response({"isSuccess": False, "data": None, "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({"isSuccess": False, "data": None, "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
@@ -372,7 +414,7 @@ def order_confirm(request, order_id):
 
     delivery_address = getattr(request.user, 'user_address', None)
     if not delivery_address:
-        return Response({
+        return JsonResponse({
             "isSuccess": False,
             "error": "User delivery address not found. Please update your address."
         }, status=500)
@@ -392,10 +434,10 @@ def order_confirm(request, order_id):
             }
             delivery_serializer = DeliverySerializer(data=delivery_data)
             if not delivery_serializer.is_valid():
-                return Response({"isSuccess": False, "error": delivery_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+                return JsonResponse({"isSuccess": False, "error": delivery_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
             delivery = delivery_serializer.save()
 
-        return Response({
+        return JsonResponse({
             "isSuccess": True,
             "data": {
                 "order": OrderSerializer(order).data,
@@ -405,7 +447,7 @@ def order_confirm(request, order_id):
         }, status=status.HTTP_200_OK)
 
     except Exception as e:
-        return Response({"isSuccess": False, "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({"isSuccess": False, "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
@@ -416,7 +458,7 @@ def cancel_order(request, order_id):
     
     cancelled_status = Status.objects.filter(status_name='cancelled').first()
     if not cancelled_status:
-        return Response({
+        return JsonResponse({
             "isSuccess": False,
             "error": "Cancelled status not found in the status table."
         }, status=drf_status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -439,7 +481,7 @@ def cancel_order(request, order_id):
                 payment.active = False  
                 payment.save()
         
-        return Response({
+        return JsonResponse({
             "isSuccess": True,
             "data": {
                 "order_id": order.order_id,
@@ -451,14 +493,14 @@ def cancel_order(request, order_id):
         }, status=drf_status.HTTP_200_OK)
     
     except Exception as e:
-        return Response({"isSuccess": False, "error": str(e)}, status=drf_status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({"isSuccess": False, "error": str(e)}, status=drf_status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET'])
 def status_list(request):
     statuses = Status.objects.all()
     serializer = StatusSerializer(statuses, many=True)
-    return Response({
+    return JsonResponse({
         "isSuccess": True,
         "data": serializer.data,
         "error": None
@@ -469,7 +511,7 @@ def status_list(request):
 def category_list(request):
     categories = Category.objects.all()
     serializer = CategorySerializer(categories, many=True)
-    return Response({
+    return JsonResponse({
         "isSuccess": True,
         "data": serializer.data,
         "error": None
@@ -479,7 +521,7 @@ def category_list(request):
 @api_view(['GET'])
 @require_access_token
 def user_profile(request):
-    user = request.user 
+    user = request.user
 
     user_data = {
         "user_data_id": user.user_data_id,
@@ -492,8 +534,12 @@ def user_profile(request):
         "updated_at": user.updated_at,
     }
 
-    wishlist_items = Wishlist.objects.filter(user=user).select_related('product')
-    
+    wishlist_qs = Wishlist.objects.filter(user=user).select_related('product')
+
+    paginator = PageNumberPagination()
+    paginator.page_size = 10  
+    wishlist_page = paginator.paginate_queryset(wishlist_qs, request)
+
     wishlist_data = [
         {
             "product_id": item.product.product_id,
@@ -503,18 +549,24 @@ def user_profile(request):
             "likes": item.product.likes,
             "active": item.product.active,
         }
-        for item in wishlist_items
+        for item in wishlist_page
     ]
 
-    return Response({
+    return JsonResponse({
         "isSuccess": True,
         "data": {
             "user": user_data,
-            "wishlist": wishlist_data
+            "wishlist": {
+                "results": wishlist_data,
+                "total_items": paginator.page.paginator.count,
+                "total_pages": paginator.page.paginator.num_pages,
+                "current_page": paginator.page.number,
+                "next": paginator.get_next_link(),
+                "previous": paginator.get_previous_link()
+            }
         },
         "error": None
     }, status=drf_status.HTTP_200_OK)
-
 
 @api_view(['POST'])
 @permission_classes([IsOwner])
@@ -534,7 +586,7 @@ def toggle_wishlist(request, product_id):
                 Wishlist.objects.create(user=user, product=product)
                 action = "added"
 
-        return Response({
+        return JsonResponse({
             "isSuccess": True,
             "data": {
                 "product_id": product.product_id,
@@ -544,4 +596,4 @@ def toggle_wishlist(request, product_id):
         }, status=status.HTTP_200_OK)
 
     except Exception as e:
-        return Response({"isSuccess": False, "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({"isSuccess": False, "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

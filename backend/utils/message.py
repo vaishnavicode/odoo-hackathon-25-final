@@ -1,7 +1,6 @@
 from rest_framework.response import Response
 from rest_framework import status
 
-# Centralized error messages
 ERROR_MESSAGES = {
     "VALIDATION_ERROR": "Validation failed.",
     "AUTH_FAILED": "Invalid username or password.",
