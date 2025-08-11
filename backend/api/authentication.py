@@ -50,9 +50,27 @@ class AccessTokenAuthentication(BaseAuthentication):
 def require_access_token(view_func):
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
+        auth_header = request.headers.get('Authorization')
+
+        # Case 1: No token
+        if not auth_header:
+            return JsonResponse({
+                "isSuccess": False,
+                "data": None,
+                "error": "No token provided."
+            }, status=401)
+
+        if not auth_header.startswith('Bearer '):
+            return JsonResponse({
+                "isSuccess": False,
+                "data": None,
+                "error": "Invalid token format. Expected 'Bearer <token>'."
+            }, status=401)
+
         user_authenticator = AccessTokenAuthentication()
         user_auth_tuple = user_authenticator.authenticate(request)
 
+        # Case 2: Invalid or expired token
         if not user_auth_tuple:
             return JsonResponse({
                 "isSuccess": False,

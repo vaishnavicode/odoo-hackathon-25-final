@@ -151,7 +151,6 @@ def product_retrieve(request, id):
 
 
 @api_view(['PUT'])
-@login_required
 @permission_classes([IsOwner])
 @require_access_token
 def product_update(request, id):
@@ -164,7 +163,6 @@ def product_update(request, id):
 
 
 @api_view(['DELETE'])
-@login_required
 @permission_classes([IsOwner])
 @require_access_token
 def product_delete(request, id):
