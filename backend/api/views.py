@@ -134,6 +134,8 @@ def product_list(request):
 @require_access_token
 def product_create(request):
     data = request.data.copy()
+    data['created_by_id'] = request.user.user_data_id  
+    
     serializer = ProductSerializer(data=data)
     if serializer.is_valid():
         serializer.save()
