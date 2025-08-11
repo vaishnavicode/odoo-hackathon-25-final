@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { productsAPI } from '../api.js';
 import { ROUTES, PRODUCT_CATEGORIES } from '../constants.js';
 import './RentalShop.css';
+import ProductDetailModal from '../components/ProductDetailModal.jsx';
 
 const RentalShop = () => {
   const [products, setProducts] = useState([]);
@@ -17,10 +18,37 @@ const RentalShop = () => {
     colors: [],
     priceRange: ''
   });
+  const [productPrices, setProductPrices] = useState({});
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState(null);
 
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    if (products.length > 0) {
+      fetchAllPrices();
+    }
+    // eslint-disable-next-line
+  }, [products]);
+
+  const fetchAllPrices = async () => {
+    const pricesMap = {};
+    await Promise.all(products.map(async (product) => {
+      try {
+        const res = await productsAPI.getPrices(product.product_id);
+        if (res.isSuccess) {
+          pricesMap[product.product_id] = res.data;
+        } else {
+          pricesMap[product.product_id] = [];
+        }
+      } catch {
+        pricesMap[product.product_id] = [];
+      }
+    }));
+    setProductPrices(pricesMap);
+  };
 
   const fetchProducts = async () => {
     try {
@@ -61,10 +89,18 @@ const RentalShop = () => {
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     if (sortBy === 'price-low') {
-      return (a.prices?.[0]?.price || 0) - (b.prices?.[0]?.price || 0);
+      const aPrices = productPrices[a.product_id] || [];
+      const bPrices = productPrices[b.product_id] || [];
+      const aMinPrice = aPrices.length > 0 ? Math.min(...aPrices.map(p => p.price)) : 0;
+      const bMinPrice = bPrices.length > 0 ? Math.min(...bPrices.map(p => p.price)) : 0;
+      return aMinPrice - bMinPrice;
     }
     if (sortBy === 'price-high') {
-      return (b.prices?.[0]?.price || 0) - (a.prices?.[0]?.price || 0);
+      const aPrices = productPrices[a.product_id] || [];
+      const bPrices = productPrices[b.product_id] || [];
+      const aMinPrice = aPrices.length > 0 ? Math.min(...aPrices.map(p => p.price)) : 0;
+      const bMinPrice = bPrices.length > 0 ? Math.min(...bPrices.map(p => p.price)) : 0;
+      return bMinPrice - aMinPrice;
     }
     if (sortBy === 'name') {
       return a.product_name.localeCompare(b.product_name);
@@ -139,19 +175,6 @@ const RentalShop = () => {
         <main className="products-main">
           {/* Controls Bar */}
           <div className="controls-bar">
-            <div className="controls-left">
-              <select 
-                className="price-list-select"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
-                <option value="">Price List</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
-                <option value="name">Name</option>
-              </select>
-            </div>
-
             <div className="search-bar">
               <i className="fas fa-search"></i>
               <input
@@ -193,56 +216,60 @@ const RentalShop = () => {
 
           {/* Products Grid/List */}
           <div className={`products-container ${viewMode}`}>
-            {paginatedProducts.map((product) => (
-              <div key={product.product_id} className="product-card">
-                <div className="product-image">
-                  <i className="fas fa-box"></i>
-                </div>
-                <div className="product-info">
-                  <h3 className="product-name">{product.product_name}</h3>
-                  <p className="product-price">₹{product.prices?.[0]?.price || '0.00'}</p>
-                  
-                  {viewMode === 'list' && (
-                    <div className="product-actions-list">
-                      <div className="quantity-control">
-                        <button onClick={() => handleQuantityChange(product.product_id, -1)}>-</button>
-                        <span>1</span>
-                        <button onClick={() => handleQuantityChange(product.product_id, 1)}>+</button>
+            {paginatedProducts.map((product) => {
+              const prices = productPrices[product.product_id] || [];
+              const minPrice = prices.length > 0 ? Math.min(...prices.map(p => p.price)) : 0;
+              return (
+                <div key={product.product_id} className="product-card" onClick={() => { setSelectedProductId(product.product_id); setModalOpen(true); }} style={{ cursor: 'pointer' }}>
+                  <div className="product-image">
+                    <i className="fas fa-box"></i>
+                  </div>
+                  <div className="product-info">
+                    <h3 className="product-name">{product.product_name}</h3>
+                    <p className="product-price">₹{minPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+                    
+                    {viewMode === 'list' && (
+                      <div className="product-actions-list">
+                        <div className="quantity-control">
+                          <button onClick={() => handleQuantityChange(product.product_id, -1)}>-</button>
+                          <span>1</span>
+                          <button onClick={() => handleQuantityChange(product.product_id, 1)}>+</button>
+                        </div>
+                        <button 
+                          className="wishlist-btn"
+                          onClick={() => handleAddToWishlist(product)}
+                        >
+                          <i className="fas fa-heart"></i>
+                        </button>
+                        <button 
+                          className="delete-btn"
+                          onClick={() => console.log('Delete product:', product.product_id)}
+                        >
+                          <i className="fas fa-trash"></i>
+                        </button>
                       </div>
-                      <button 
-                        className="wishlist-btn"
-                        onClick={() => handleAddToWishlist(product)}
-                      >
-                        <i className="fas fa-heart"></i>
-                      </button>
-                      <button 
-                        className="delete-btn"
-                        onClick={() => console.log('Delete product:', product.product_id)}
-                      >
-                        <i className="fas fa-trash"></i>
-                      </button>
-                    </div>
-                  )}
-                  
-                  {viewMode === 'grid' && (
-                    <div className="product-actions-grid">
-                      <button 
-                        className="add-to-cart-btn"
-                        onClick={() => handleAddToCart(product)}
-                      >
-                        Add to Cart
-                      </button>
-                      <button 
-                        className="wishlist-btn"
-                        onClick={() => handleAddToWishlist(product)}
-                      >
-                        <i className="fas fa-heart"></i>
-                      </button>
-                    </div>
-                  )}
+                    )}
+                    
+                    {viewMode === 'grid' && (
+                      <div className="product-actions-grid">
+                        <button 
+                          className="add-to-cart-btn"
+                          onClick={() => handleAddToCart(product)}
+                        >
+                          Add to Cart
+                        </button>
+                        <button 
+                          className="wishlist-btn"
+                          onClick={() => handleAddToWishlist(product)}
+                        >
+                          <i className="fas fa-heart"></i>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Pagination */}
@@ -292,6 +319,7 @@ const RentalShop = () => {
           )}
         </main>
       </div>
+      <ProductDetailModal productId={selectedProductId} open={modalOpen} onClose={() => setModalOpen(false)} />
     </div>
   );
 };
