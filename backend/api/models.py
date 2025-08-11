@@ -39,11 +39,30 @@ class UserData(models.Model):
         return self.user_name
 
 
+class Category(models.Model):
+    category_id = models.BigAutoField(primary_key=True)
+    category_name = models.CharField(max_length=50, unique=True)
+
+    class Meta:
+        db_table = 'category'
+        ordering = ['category_name']
+
+    def __str__(self):
+        return self.category_name
+
+
 class Product(models.Model):
     product_id = models.BigAutoField(primary_key=True)
     product_name = models.CharField(max_length=200)
     product_description = models.TextField(blank=True, null=True)
     product_qty = models.PositiveIntegerField()
+    category = models.ForeignKey(
+        Category, 
+        on_delete=models.SET_DEFAULT,  
+        default=1, 
+        related_name='products'
+    )
+    likes = models.PositiveIntegerField(default=0)  
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(UserData, on_delete=models.CASCADE, related_name='products')
     active = models.BooleanField(default=True)

@@ -17,12 +17,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.db import transaction
 
-from .models import (
-    Status, UserData, UserAccessToken, Product, ProductPrice, Order, InvoiceType
-)
-from .serializers import (
-    UserDataSerializer, ProductSerializer, ProductPriceSerializer, OrderSerializer, PaymentSerializer, DeliverySerializer
-)
+from .models import *
+from .serializers import *
 
 from api.authentication import require_access_token   
 from utils.message import ERROR_MESSAGES         
@@ -402,3 +398,25 @@ def cancel_order(request, order_id):
     
     except Exception as e:
         return Response({"isSuccess": False, "error": str(e)}, status=drf_status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+def status_list(request):
+    statuses = Status.objects.all()
+    serializer = StatusSerializer(statuses, many=True)
+    return Response({
+        "isSuccess": True,
+        "data": serializer.data,
+        "error": None
+    }, status=drf_status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def category_list(request):
+    categories = Category.objects.all()
+    serializer = CategorySerializer(categories, many=True)
+    return Response({
+        "isSuccess": True,
+        "data": serializer.data,
+        "error": None
+    }, status=drf_status.HTTP_200_OK)
