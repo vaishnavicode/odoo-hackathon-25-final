@@ -35,7 +35,7 @@ urlpatterns = [
     path('user/products/', user_products, name='user-products'),
     path('user/update-profile/', update_profile_view, name='update-profile'),
 
-
+    path('vendor/report/', vendor_report, name='vendor-report'),
     
     # Generic URLs
     path('statuses/', status_list, name='status-list'),

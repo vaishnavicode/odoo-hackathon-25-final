@@ -29,6 +29,13 @@ from utils.message import ERROR_MESSAGES
 from utils.email import send_mail
 from .permissions import vendor_required, customer_required
 
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from django.db.models import Count, Q
+
+from .models import Product, Order
+
 
 @csrf_exempt
 @require_http_methods(['POST'])
@@ -55,22 +62,34 @@ def login_user_view(request):
         password = data.get('user_password')
 
         if not user_email or not password:
-            return JsonResponse({"isSuccess": False, "error": ERROR_MESSAGES.get('MISSING_CREDENTIALS')}, status=400)
+            return JsonResponse({
+                "isSuccess": False,
+                "error": ERROR_MESSAGES.get('MISSING_CREDENTIALS', 'Missing email or password')
+            }, status=400)
 
         try:
             user = UserData.objects.get(user_email=user_email, active=True)
         except UserData.DoesNotExist:
-            return JsonResponse({"isSuccess": False, "error": ERROR_MESSAGES.get('INVALID_CREDENTIALS')}, status=401)
+            return JsonResponse({
+                "isSuccess": False,
+                "error": ERROR_MESSAGES.get('INVALID_CREDENTIALS', 'Invalid email or password')
+            }, status=401)
 
         if not check_password(password, user.user_password):
-            return JsonResponse({"isSuccess": False, "error": ERROR_MESSAGES.get('INVALID_CREDENTIALS')}, status=401)
+            return JsonResponse({
+                "isSuccess": False,
+                "error": ERROR_MESSAGES.get('INVALID_CREDENTIALS', 'Invalid email or password')
+            }, status=401)
 
-        # Invalidate old tokens
         UserAccessToken.objects.filter(user_data=user, active=True).update(active=False)
 
         now = timezone.now()
         expiry = now + timedelta(days=7)
-        payload = {'user_id': str(user.user_data_id), 'iat': int(now.timestamp()), 'exp': int(expiry.timestamp())}
+        payload = {
+            'user_id': str(user.user_data_id),
+            'iat': int(now.timestamp()),
+            'exp': int(expiry.timestamp())
+        }
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
 
         UserAccessToken.objects.create(
@@ -79,12 +98,14 @@ def login_user_view(request):
             user_access_token_expiry=expiry,
             active=True
         )
+
+        user_serialized = UserDataSerializer(user)
+
         return JsonResponse({
             "isSuccess": True,
             "data": {
                 "user_id": user.user_data_id,
-                "user_email": user.user_email,
-                "user_name": user.user_name,
+                "user_data": user_serialized.data,
                 "access_token": token,
                 "token_expiry": expiry.isoformat()
             },
@@ -92,7 +113,10 @@ def login_user_view(request):
         }, status=200)
 
     except Exception as e:
-        return JsonResponse({"isSuccess": False, "error": str(e)}, status=500)
+        return JsonResponse({
+            "isSuccess": False,
+            "error": str(e)
+        }, status=500)
 
 
 @api_view(['POST'])
@@ -776,3 +800,50 @@ def user_role_list(request):
         "data": serializer.data,
         "error": None
     }, status=drf_status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@require_access_token
+@vendor_required
+def vendor_report(request):
+    try:
+        user = request.user
+
+        products = Product.objects.filter(created_by=user, active=True)
+
+        completed_status = 'completed'
+        completed_orders = Order.objects.filter(product__in=products, status__status_name=completed_status)
+
+        total_orders = completed_orders.count()
+
+        recent_orders_qs = completed_orders.order_by('-created_at')[:5]
+        recent_orders = [
+            {
+                "order_id": o.order_id,
+                "product_name": o.product.product_name,
+                "order_date": o.created_at,
+                "status": o.status.status_name
+            }
+            for o in recent_orders_qs
+        ]
+
+        product_performance = products.annotate(
+            orders_count=Count('orders', filter=Q(orders__status__status_name=completed_status))
+        ).values('product_id', 'product_name', 'orders_count')
+
+        return Response({
+            "isSuccess": True,
+            "data": {
+                "total_orders": total_orders,
+                "recent_orders": recent_orders,
+                "product_performance": list(product_performance),
+            },
+            "error": None
+        })
+
+    except Exception as e:
+        return Response({
+            "isSuccess": False,
+            "data": None,
+            "error": str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

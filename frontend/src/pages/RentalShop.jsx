@@ -4,6 +4,9 @@ import { productsAPI } from '../api.js';
 import { ROUTES, PRODUCT_CATEGORIES } from '../constants.js';
 import '../styles/RentalShop.css';
 import ProductDetailModal from '../components/ProductDetailModal.jsx';
+import { useAuth } from '../App.jsx';
+import { useNavigate } from 'react-router-dom';
+
 
 const RentalShop = () => {
   const [products, setProducts] = useState([]);
@@ -23,6 +26,14 @@ const RentalShop = () => {
   const [productPrices, setProductPrices] = useState({});
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState(null);
+
+
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // extract role
+  const userRoleName = user?.user_data?.user_role?.user_role_name?.toLowerCase();
+
 
   useEffect(() => {
     fetchProducts(currentPage);
@@ -197,6 +208,19 @@ const RentalShop = () => {
 
   return (
     <div className="rental-shop-container">
+      {/* Show Create Product button only if vendor */}
+      {userRoleName === 'vendor' && (
+        <div className="create-product-container">
+          <button
+            className="create-product-btn"
+            onClick={() => navigate('/create-product')} // or wherever your create product page is
+          >
+            + Create Product
+          </button>
+        </div>
+      )}
+
+
       {/* Category Navigation */}
       <div className="category-nav">
         {PRODUCT_CATEGORIES.map((category, index) => (

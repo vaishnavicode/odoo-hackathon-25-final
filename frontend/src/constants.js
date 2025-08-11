@@ -3,22 +3,25 @@ export const API_BASE_URL = 'http://localhost:8000/api';
 
 // API Endpoints
 export const API_ENDPOINTS = {
-  // Auth
   REGISTER: '/register/',
   LOGIN: '/login/',
   LOGOUT: '/logout/',
-  
-  // Products
+
   PRODUCTS: '/products/',
+  PRODUCT_CREATE: '/products/create/',
   PRODUCT_DETAIL: (id) => `/products/${id}/`,
   PRODUCT_UPDATE: (id) => `/products/${id}/update/`,
   PRODUCT_DELETE: (id) => `/products/${id}/delete/`,
-  
-  // Product Prices
+
   PRODUCT_PRICES: (id) => `/products/${id}/prices/`,
+  PRODUCT_PRICE_CREATE: (id) => `/products/${id}/prices/create/`,
   PRODUCT_PRICE_DETAIL: (id, priceId) => `/products/${id}/prices/${priceId}/`,
   PRODUCT_PRICE_UPDATE: (id, priceId) => `/products/${id}/prices/${priceId}/update/`,
   PRODUCT_PRICE_DELETE: (id, priceId) => `/products/${id}/prices/${priceId}/delete/`,
+
+  WISHLIST_TOGGLE: (productId) => `/user/wishlist/toggle/${productId}/`,
+
+  VENDOR_REPORT: '/vendor/report/',
 };
 
 // Local Storage Keys
@@ -38,6 +41,8 @@ export const ROUTES = {
   CART: '/cart',
   PROFILE: '/profile',
   CONTACT: '/contact',
+  REPORTING: '/reporting',
+
 };
 
 // Product Categories (placeholder)
