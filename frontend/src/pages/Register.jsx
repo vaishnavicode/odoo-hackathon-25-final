@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { ROUTES } from '../constants.js';
-import './Register.css';
+import '../styles/Register.css';
 
 const Register = () => {
   const [formData, setFormData] = useState({

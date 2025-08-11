@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { productsAPI } from '../api.js';
 import { ROUTES, PRODUCT_CATEGORIES } from '../constants.js';
-import './RentalShop.css';
+import '../styles/RentalShop.css';
 import ProductDetailModal from '../components/ProductDetailModal.jsx';
 
 const RentalShop = () => {

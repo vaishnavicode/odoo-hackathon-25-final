@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { productsAPI } from '../api.js';
-import './ProductDetailModal.css';
+import '../styles/ProductDetailModal.css';
 
 const ProductDetailModal = ({ productId, open, onClose }) => {
   const [product, setProduct] = useState(null);

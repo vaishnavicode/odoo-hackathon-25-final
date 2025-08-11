@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../App.jsx';
-import './Profile.css';
+import '../styles/Profile.css';
 
 const Profile = () => {
   const { user } = useAuth();
