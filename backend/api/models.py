@@ -5,13 +5,6 @@ from django.utils.translation import gettext_lazy as _
 
 
 class DateTimeMixin(models.Model):
-    id = models.UUIDField(
-        default=uuid.uuid4,
-        unique=True,
-        primary_key=True,
-        auto_created=True,
-        editable=False,
-    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     class Meta:
@@ -41,7 +34,6 @@ class Product(models.Model, DateTimeMixin):
     product_description = models.TextField()
     product_price = models.IntegerField()
     product_qty = models.IntegerField()
-    created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(UserData, on_delete=models.CASCADE)
     active = models.BooleanField(default=True)
 
@@ -53,14 +45,14 @@ class ProductPrice(models.Model, DateTimeMixin):
     product_price_id = models.AutoField(primary_key=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     price = models.IntegerField()
-    timestamp = models.DateTimeField(auto_now_add=True)
+    timestamp_duration = models.DateTimeField(auto_now_add=True)
     active = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.product.product_name} - {self.price}"
 
 
-class Status(models.Model):
+class Status(models.Model,DateTimeMixin):
     status_id = models.AutoField(primary_key=True)
     status_name = models.CharField(max_length=50)
 
@@ -73,7 +65,6 @@ class Order(models.Model, DateTimeMixin):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     user_data = models.ForeignKey(UserData, on_delete=models.CASCADE)
     status = models.ForeignKey(Status, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Order #{self.order_id}"
@@ -106,7 +97,6 @@ class Payment(models.Model, DateTimeMixin):
     status = models.ForeignKey(Status, on_delete=models.CASCADE)
     payment_percentage = models.IntegerField()
     active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Payment #{self.payment_id}"
