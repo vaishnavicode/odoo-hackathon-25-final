@@ -26,6 +26,23 @@ class UserDataSerializer(serializers.ModelSerializer):
             'updated_at': {'read_only': True},
         }
 
+    def create(self, validated_data):
+        # Hash password before save
+        password = validated_data.pop('user_password', None)
+        user = super().create(validated_data)
+        if password:
+            user.user_password = password
+            user.save()
+        return user
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('user_password', None)
+        instance = super().update(instance, validated_data)
+        if password:
+            instance.user_password = password
+            instance.save()
+        return instance
+
 
 class ProductSerializer(serializers.ModelSerializer):
     created_by = UserDataSerializer(read_only=True)
@@ -64,49 +81,6 @@ class StatusSerializer(serializers.ModelSerializer):
         fields = ['status_id', 'status_name']
 
 
-class OrderSerializer(serializers.ModelSerializer):
-    product = ProductSerializer(read_only=True)
-    product_id = serializers.PrimaryKeyRelatedField(
-        queryset=Product.objects.all(), source='product', write_only=True
-    )
-    user_data = UserDataSerializer(read_only=True)
-    user_data_id = serializers.PrimaryKeyRelatedField(
-        queryset=UserData.objects.all(), source='user_data', write_only=True
-    )
-    status = StatusSerializer(read_only=True)
-    status_id = serializers.PrimaryKeyRelatedField(
-        queryset=Status.objects.all(), source='status', write_only=True
-    )
-
-    class Meta:
-        model = Order
-        fields = [
-            'order_id', 'product', 'product_id', 'user_data', 'user_data_id',
-            'status', 'status_id', 'created_at'
-        ]
-        extra_kwargs = {
-            'created_at': {'read_only': True},
-        }
-
-
-class NotificationSerializer(serializers.ModelSerializer):
-    user_data = UserDataSerializer(read_only=True)
-    user_data_id = serializers.PrimaryKeyRelatedField(
-        queryset=UserData.objects.all(), source='user_data', write_only=True
-    )
-    product = ProductSerializer(read_only=True)
-    product_id = serializers.PrimaryKeyRelatedField(
-        queryset=Product.objects.all(), source='product', write_only=True
-    )
-
-    class Meta:
-        model = Notification
-        fields = [
-            'notification_id', 'user_data', 'user_data_id', 'product', 'product_id',
-            'notification_content', 'email_sent', 'is_read', 'deleted'
-        ]
-
-
 class InvoiceTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = InvoiceType
@@ -133,6 +107,54 @@ class PaymentSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'created_at': {'read_only': True},
         }
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    product = ProductSerializer(read_only=True)
+    product_id = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.all(), source='product', write_only=True
+    )
+    user_data = UserDataSerializer(read_only=True)
+    user_data_id = serializers.PrimaryKeyRelatedField(
+        queryset=UserData.objects.all(), source='user_data', write_only=True
+    )
+    payment = PaymentSerializer(read_only=True)
+    payment_id = serializers.PrimaryKeyRelatedField(
+        queryset=Payment.objects.all(), source='payment', write_only=True
+    )
+    status = StatusSerializer(read_only=True)
+    status_id = serializers.PrimaryKeyRelatedField(
+        queryset=Status.objects.all(), source='status', write_only=True
+    )
+
+    class Meta:
+        model = Order
+        fields = [
+            'order_id', 'product', 'product_id', 'user_data', 'user_data_id',
+            'payment', 'payment_id', 'status', 'status_id',
+            'timestamp_from', 'timestamp_to', 'created_at'
+        ]
+        extra_kwargs = {
+            'created_at': {'read_only': True},
+        }
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    user_data = UserDataSerializer(read_only=True)
+    user_data_id = serializers.PrimaryKeyRelatedField(
+        queryset=UserData.objects.all(), source='user_data', write_only=True
+    )
+    product = ProductSerializer(read_only=True)
+    product_id = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.all(), source='product', write_only=True
+    )
+
+    class Meta:
+        model = Notification
+        fields = [
+            'notification_id', 'user_data', 'user_data_id', 'product', 'product_id',
+            'notification_content', 'email_sent', 'is_read', 'deleted'
+        ]
 
 
 class UserAccessTokenSerializer(serializers.ModelSerializer):

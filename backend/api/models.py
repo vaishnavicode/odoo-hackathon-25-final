@@ -1,92 +1,137 @@
 from django.db import models
+from django.contrib.auth.hashers import make_password
+from django.utils import timezone
 
 class UserRole(models.Model):
-    user_role_id = models.AutoField(primary_key=True)
-    user_role_name = models.CharField(max_length=100)
+    user_role_id = models.BigAutoField(primary_key=True)
+    user_role_name = models.CharField(max_length=100, unique=True)
 
     class Meta:
         db_table = 'user_role'
+        ordering = ['user_role_name']
 
     def __str__(self):
         return self.user_role_name
 
 
 class UserData(models.Model):
-    user_data_id = models.AutoField(primary_key=True)
+    user_data_id = models.BigAutoField(primary_key=True)
     user_name = models.CharField(max_length=100)
-    user_email = models.EmailField(unique=True)
-    user_contact = models.CharField(max_length=15)
-    user_address = models.CharField(max_length=255) 
+    user_email = models.EmailField(unique=True, db_index=True)
+    user_contact = models.CharField(max_length=15, blank=True, null=True)
+    user_address = models.CharField(max_length=255, blank=True, null=True)  
     user_password = models.CharField(max_length=255) 
     user_role = models.ForeignKey(UserRole, on_delete=models.PROTECT, related_name='users')
     active = models.BooleanField(default=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def save(self, *args, **kwargs):
+        if self.user_password and not self.user_password.startswith('pbkdf2_'):
+            self.user_password = make_password(self.user_password)
+        super().save(*args, **kwargs)
+
     class Meta:
         db_table = 'user_data'
+        ordering = ['user_name']
 
     def __str__(self):
         return self.user_name
 
 
 class Product(models.Model):
-    product_id = models.AutoField(primary_key=True)
+    product_id = models.BigAutoField(primary_key=True)
     product_name = models.CharField(max_length=200)
-    product_description = models.TextField()
-    product_qty = models.IntegerField()
+    product_description = models.TextField(blank=True, null=True)
+    product_qty = models.PositiveIntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(UserData, on_delete=models.CASCADE, related_name='products')
     active = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'product'
+        ordering = ['product_name']
 
     def __str__(self):
         return self.product_name
 
 
 class ProductPrice(models.Model):
-    product_price_id = models.AutoField(primary_key=True)
+    product_price_id = models.BigAutoField(primary_key=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='prices')
-    price = models.IntegerField()
-    time_duration = models.CharField(max_length=100)
+    price = models.PositiveIntegerField()
+    time_duration = models.CharField(max_length=100)  
     active = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'product_price'
+        ordering = ['-price']
 
     def __str__(self):
-        return f"{self.product.product_name} - {self.price}"
+        return f"{self.product.product_name} - {self.price} / {self.time_duration}"
 
 
 class Status(models.Model):
-    status_id = models.AutoField(primary_key=True)
-    status_name = models.CharField(max_length=50)
+    status_id = models.BigAutoField(primary_key=True)
+    status_name = models.CharField(max_length=50, unique=True)
 
     class Meta:
         db_table = 'status'
+        ordering = ['status_name']
 
     def __str__(self):
         return self.status_name
 
 
+class InvoiceType(models.Model):
+    invoice_type_id = models.BigAutoField(primary_key=True)
+    invoice_type = models.CharField(max_length=50, unique=True)
+
+    class Meta:
+        db_table = 'invoice_type'
+        ordering = ['invoice_type']
+
+    def __str__(self):
+        return self.invoice_type
+
+
+class Payment(models.Model):
+    payment_id = models.BigAutoField(primary_key=True)
+    invoice_type = models.ForeignKey(InvoiceType, on_delete=models.PROTECT, related_name='payments')
+    status = models.ForeignKey(Status, on_delete=models.PROTECT, related_name='payments')
+    payment_percentage = models.PositiveIntegerField()
+    active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'payment'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Payment #{self.payment_id} - {self.payment_percentage}%"
+
+
 class Order(models.Model):
-    order_id = models.AutoField(primary_key=True)
+    order_id = models.BigAutoField(primary_key=True)
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='orders')
     user_data = models.ForeignKey(UserData, on_delete=models.PROTECT, related_name='orders')
+    payment = models.ForeignKey(Payment, on_delete=models.PROTECT, related_name='orders')
     status = models.ForeignKey(Status, on_delete=models.PROTECT, related_name='orders')
+    timestamp_from = models.DateTimeField()
+    timestamp_to = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'order'
+        ordering = ['-created_at']
 
     def __str__(self):
-        return f"Order #{self.order_id} - {self.status.status_name}"
+        return f"Order #{self.order_id} ({self.status.status_name})"
 
 
 class Notification(models.Model):
-    notification_id = models.AutoField(primary_key=True)
+    notification_id = models.BigAutoField(primary_key=True)
     user_data = models.ForeignKey(UserData, on_delete=models.CASCADE, related_name='notifications')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='notifications')
     notification_content = models.TextField()
@@ -96,47 +141,23 @@ class Notification(models.Model):
 
     class Meta:
         db_table = 'notification'
+        ordering = ['-notification_id']
 
     def __str__(self):
-        return f"Notification #{self.notification_id}"
-
-
-class InvoiceType(models.Model):
-    invoice_type_id = models.AutoField(primary_key=True)
-    invoice_type = models.CharField(max_length=50)
-
-    class Meta:
-        db_table = 'invoice_type'
-
-    def __str__(self):
-        return self.invoice_type
-
-
-class Payment(models.Model):
-    payment_id = models.AutoField(primary_key=True)
-    invoice_type = models.ForeignKey(InvoiceType, on_delete=models.PROTECT, related_name='payments')
-    status = models.ForeignKey(Status, on_delete=models.PROTECT, related_name='payments')
-    payment_percentage = models.IntegerField()
-    active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = 'payment'
-
-    def __str__(self):
-        return f"Payment #{self.payment_id} - {self.payment_percentage}%"
+        return f"Notification #{self.notification_id} for {self.user_data.user_name}"
 
 
 class UserAccessToken(models.Model):
-    user_access_token_id = models.AutoField(primary_key=True)
+    user_access_token_id = models.BigAutoField(primary_key=True)
     user_data = models.ForeignKey(UserData, on_delete=models.CASCADE, related_name='access_tokens')
-    user_access_token = models.CharField(max_length=255)
+    user_access_token = models.CharField(max_length=255, unique=True, db_index=True)
     user_access_token_expiry = models.DateTimeField()
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'user_access_token'
+        ordering = ['-created_at']
 
     def __str__(self):
-        return f"Token #{self.user_access_token_id} for user {self.user_data.user_name}"
+        return f"Token #{self.user_access_token_id} for {self.user_data.user_name}"
