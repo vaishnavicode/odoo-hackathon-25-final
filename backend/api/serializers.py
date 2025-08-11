@@ -33,7 +33,6 @@ class UserDataSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
-        # Hash password before save
         password = validated_data.pop('user_password', None)
         user = super().create(validated_data)
         if password:
