@@ -30,6 +30,7 @@ urlpatterns = [
     path('logout/', logout_user_view, name='logout_user'),
     path('user/profile/', user_profile, name='user-profile'),
     path('user/wishlist/toggle/<int:product_id>/', toggle_wishlist, name='toggle-wishlist'),
+    path('user/products/', user_products, name='user-products'),
 
     
     # Generic URLs

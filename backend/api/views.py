@@ -568,6 +568,7 @@ def user_profile(request):
         "error": None
     }, status=drf_status.HTTP_200_OK)
 
+
 @api_view(['POST'])
 @permission_classes([IsOwner])
 @require_access_token
@@ -597,3 +598,30 @@ def toggle_wishlist(request, product_id):
 
     except Exception as e:
         return JsonResponse({"isSuccess": False, "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@require_access_token
+def user_products(request):
+    user = request.user
+
+    products_qs = Product.objects.filter(created_by_id=user.user_data_id).order_by('product_id')
+
+    paginator = PageNumberPagination()
+    paginator.page_size = 10
+    products_page = paginator.paginate_queryset(products_qs, request)
+
+    serializer = ProductSerializer(products_page, many=True)
+
+    return JsonResponse({
+        "isSuccess": True,
+        "data": {
+            "results": serializer.data,
+            "total_items": paginator.page.paginator.count,
+            "total_pages": paginator.page.paginator.num_pages,
+            "current_page": paginator.page.number,
+            "next": paginator.get_next_link(),
+            "previous": paginator.get_previous_link()
+        },
+        "error": None
+    }, status=drf_status.HTTP_200_OK)
