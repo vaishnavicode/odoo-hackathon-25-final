@@ -2,6 +2,7 @@ import logging
 import json
 import jwt
 from datetime import timedelta
+from rest_framework import status as drf_status
 
 from django.conf import settings
 from django.http import JsonResponse
@@ -10,17 +11,17 @@ from django.views.decorators.http import require_http_methods
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.contrib.auth.hashers import check_password
-from django.contrib.auth.decorators import login_required
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
+from django.db import transaction
 
 from .models import (
-    UserData, UserAccessToken, Product, ProductPrice
+    Status, UserData, UserAccessToken, Product, ProductPrice, Order, InvoiceType
 )
 from .serializers import (
-    UserDataSerializer, ProductSerializer, ProductPriceSerializer
+    UserDataSerializer, ProductSerializer, ProductPriceSerializer, OrderSerializer, PaymentSerializer, DeliverySerializer
 )
 
 from api.authentication import require_access_token   
@@ -234,3 +235,152 @@ def product_price_delete(request, id, price_id):
     price = get_object_or_404(ProductPrice, product_price_id=price_id, product_id=id)
     price.delete()
     return Response({"isSuccess": True, "data": f"ProductPrice {price_id} deleted", "error": None}, status=status.HTTP_204_NO_CONTENT)
+
+
+# ----------- Order Views -----------
+
+@api_view(['GET'])
+@require_access_token
+def order_list(request, id=None):
+    user_id = request.user.user_data_id  
+    
+    orders = Order.objects.filter(user_data_id=user_id)
+    
+    if id:
+        orders = orders.filter(order_id=id)
+        if not orders.exists():
+            return Response(
+                {"isSuccess": False, "error": "Invalid order ID for this user."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    serializer = OrderSerializer(orders, many=True)
+    return Response(
+        {"isSuccess": True, "data": serializer.data, "error": None},
+        status=status.HTTP_200_OK
+    )
+
+
+@api_view(['POST'])
+@permission_classes([IsOwner])
+@require_access_token
+def order_create(request):
+    data = request.data.copy()
+
+    try:
+        user_data_id = request.user.user_data_id
+    except AttributeError:
+        return Response({"isSuccess": False, "error": "User data not found for this user."}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not Product.objects.filter(product_id=data.get('product_id')).exists():
+        return Response({"isSuccess": False, "error": "Invalid product ID."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        with transaction.atomic():
+            payment_data = {
+                "invoice_type_id": 1,
+                "payment_percentage": 0,
+                "status_id": 1,  
+                "active": True,
+            }
+            payment_serializer = PaymentSerializer(data=payment_data)
+            if not payment_serializer.is_valid():
+                return Response({"isSuccess": False, "error": payment_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            payment = payment_serializer.save()
+
+            order_data = {
+                "product_id": data.get("product_id"),
+                "user_data_id": user_data_id,
+                "payment_id": payment.payment_id,
+                "status_id": 1, 
+                "timestamp_from": data.get("timestamp_from"),
+                "timestamp_to": data.get("timestamp_to")
+            }
+            order_serializer = OrderSerializer(data=order_data)
+            if not order_serializer.is_valid():
+                raise ValueError(order_serializer.errors)
+            order_serializer.save()
+
+        return Response({
+            "isSuccess": True,
+            "data": {
+                "payment": payment_serializer.data,
+                "order": order_serializer.data
+            },
+            "error": None
+        }, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        return Response({"isSuccess": False, "data": None, "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([IsOwner])
+@require_access_token
+def order_confirm(request, order_id):
+    order = get_object_or_404(Order, order_id=order_id, user_data_id=request.user.user_data_id)
+
+    delivery_address = getattr(request.user, 'user_address', None)
+    if not delivery_address:
+        return Response({
+            "isSuccess": False,
+            "error": "User delivery address not found. Please update your address."
+        }, status=500)
+
+    try:
+        with transaction.atomic():
+            order.status_id = 5
+            order.save()
+
+            delivery_data = {
+                "order_id": order.order_id,
+                "delivery_address": delivery_address,
+                "delivery_date": None,
+                "delivery_at": None,
+                "status_id": 1,
+                "active": True,
+            }
+            delivery_serializer = DeliverySerializer(data=delivery_data)
+            if not delivery_serializer.is_valid():
+                return Response({"isSuccess": False, "error": delivery_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            delivery = delivery_serializer.save()
+
+        return Response({
+            "isSuccess": True,
+            "data": {
+                "order": OrderSerializer(order).data,
+                "delivery": DeliverySerializer(delivery).data,
+            },
+            "error": None
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({"isSuccess": False, "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([IsOwner])
+@require_access_token
+def cancel_order(request, order_id):
+    order = get_object_or_404(Order, order_id=order_id, user_data_id=request.user.user_data_id)
+    
+    cancelled_status = Status.objects.filter(status_name='cancelled').first()
+    if not cancelled_status:
+        return Response({
+            "isSuccess": False,
+            "error": "Cancelled status not found in the status table."
+        }, status=drf_status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    try:
+        with transaction.atomic():
+            order.status = cancelled_status
+            order.save()
+        
+        return Response({
+            "isSuccess": True,
+            "data": {"order_id": order.order_id, "status": cancelled_status.status_id},
+            "error": None
+        }, status=drf_status.HTTP_200_OK)
+    
+    except Exception as e:
+        return Response({"isSuccess": False, "error": str(e)}, status=drf_status.HTTP_400_BAD_REQUEST)

@@ -16,6 +16,13 @@ urlpatterns = [
     path('products/<int:id>/prices/<int:price_id>/update/', product_price_update, name='product-price-update'),
     path('products/<int:id>/prices/<int:price_id>/delete/', product_price_delete, name='product-price-delete'),
 
+    # Order URLs
+    path('orders/', order_list, name='order-list'),
+    path('orders/<int:id>/', order_list, name='order-details'),
+    path('orders/create/', order_create, name='order-create'),
+    path('orders/<int:order_id>/confirm', order_confirm, name='order-retrieve'),
+    path('orders/<int:order_id>/cancel/', cancel_order, name='order-cancel'),
+
     # Auth URLs
     path('register/', register_user_view, name='register_user'),
     path('login/', login_user_view, name='login_user'),

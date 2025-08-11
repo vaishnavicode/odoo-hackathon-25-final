@@ -2,9 +2,6 @@ from rest_framework import serializers
 from .models import *
 from django.contrib.auth.hashers import make_password
 
-# -------------------------
-# User Role
-# -------------------------
 class UserRoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserRole
@@ -184,6 +181,32 @@ class UserAccessTokenSerializer(serializers.ModelSerializer):
             'user_access_token_id', 'user_data', 'user_data_id',
             'user_access_token', 'user_access_token_expiry',
             'active', 'created_at'
+        ]
+        extra_kwargs = {
+            'created_at': {'read_only': True},
+        }
+
+
+class DeliverySerializer(serializers.ModelSerializer):
+    order_id = serializers.PrimaryKeyRelatedField(
+        queryset=Order.objects.all(),
+        source='order',
+        write_only=True
+    )
+    status_id = serializers.PrimaryKeyRelatedField(
+        queryset=Status.objects.all(),
+        source='status',
+        write_only=True
+    )
+    order = serializers.StringRelatedField(read_only=True)
+    status = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = Delivery
+        fields = [
+            'delivery_id', 'order', 'order_id',
+            'delivery_address', 'status', 'status_id',
+            'delivery_date', 'delivery_at', 'active', 'created_at'
         ]
         extra_kwargs = {
             'created_at': {'read_only': True},
