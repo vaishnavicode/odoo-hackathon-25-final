@@ -27,9 +27,12 @@ urlpatterns = [
     # User URLs
     path('register/', register_user_view, name='register_user'),
     path('login/', login_user_view, name='login_user'),
+    path('login/forgot-password/', forgot_password_view, name='forgot_password'),
+    path('login/reset-password/', reset_password_view, name='reset-password'),
     path('logout/', logout_user_view, name='logout_user'),
     path('user/profile/', user_profile, name='user-profile'),
     path('user/wishlist/toggle/<int:product_id>/', toggle_wishlist, name='toggle-wishlist'),
+    path('user/products/', user_products, name='user-products'),
 
     
     # Generic URLs
