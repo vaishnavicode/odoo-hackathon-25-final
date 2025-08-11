@@ -168,9 +168,8 @@ class Delivery(models.Model):
     order = models.ForeignKey('Order', on_delete=models.CASCADE, related_name='deliveries')
     delivery_address = models.CharField(max_length=255, blank=True, null=True)
     status = models.ForeignKey('Status', on_delete=models.CASCADE, related_name='deliveries')
-    delivery_date = models.DateTimeField()
-    delivery_person = models.CharField(max_length=100, blank=True, null=True)
-    tracking_number = models.CharField(max_length=100, blank=True, null=True)
+    delivery_date = models.DateTimeField(blank=True, null=True)
+    delivery_at = models.DateTimeField(null=True, blank=True)
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
