@@ -27,6 +27,7 @@ from .permissions import IsOwner
 from api.authentication import require_access_token
 from utils.message import ERROR_MESSAGES
 from utils.email import send_mail
+from .permissions import vendor_required, customer_required
 
 
 @csrf_exempt
@@ -243,6 +244,7 @@ def product_retrieve(request, id):
 
 
 @api_view(['POST'])
+@vendor_required
 @require_access_token
 def product_create(request):
     data = request.data.copy()
@@ -263,6 +265,7 @@ def product_create(request):
 
 
 @api_view(['PUT'])
+@vendor_required
 @permission_classes([IsOwner])
 @require_access_token
 def product_update(request, id):
@@ -286,6 +289,7 @@ def product_update(request, id):
 
 
 @api_view(['DELETE'])
+@vendor_required
 @permission_classes([IsOwner])
 @require_access_token
 def product_delete(request, id):
@@ -364,6 +368,7 @@ def product_price_list(request, id):
 
 
 @api_view(['POST'])
+@vendor_required
 @permission_classes([IsOwner])
 @require_access_token
 def product_price_create(request, id):
@@ -392,6 +397,7 @@ def product_price_retrieve(request, id, price_id):
 
 
 @api_view(['PUT'])
+@vendor_required
 @permission_classes([IsOwner])
 @require_access_token
 def product_price_update(request, id, price_id):
@@ -404,6 +410,7 @@ def product_price_update(request, id, price_id):
 
 
 @api_view(['DELETE'])
+@vendor_required
 @require_access_token
 @permission_classes([IsOwner])
 def product_price_delete(request, id, price_id):
@@ -450,6 +457,7 @@ def order_list(request, id=None):
 
 
 @api_view(['POST'])
+@customer_required
 @permission_classes([IsOwner])
 @require_access_token
 def order_create(request):
@@ -503,6 +511,7 @@ def order_create(request):
 
 
 @api_view(['POST'])
+@customer_required
 @permission_classes([IsOwner])
 @require_access_token
 def order_confirm(request, order_id):
@@ -547,6 +556,7 @@ def order_confirm(request, order_id):
 
 
 @api_view(['POST'])
+@customer_required
 @permission_classes([IsOwner])
 @require_access_token
 def cancel_order(request, order_id):
@@ -697,6 +707,7 @@ def toggle_wishlist(request, product_id):
 
 
 @api_view(['GET'])
+@vendor_required
 @require_access_token
 def user_products(request):
     user = request.user
@@ -721,3 +732,36 @@ def user_products(request):
         },
         "error": None
     }, status=drf_status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@require_access_token
+@permission_classes([IsOwner])
+def update_profile_view(request):
+    user = request.user 
+
+    user_address = request.data.get('user_address')
+    user_contact = request.data.get('user_contact')
+    new_password = request.data.get('new_password')
+
+    if user_address is not None:
+        user.user_address = user_address
+
+    if user_contact is not None:
+        user.user_contact = user_contact
+
+    if new_password:
+        user.user_password = make_password(new_password)
+
+    try:
+        user.save()
+        return JsonResponse({
+            "isSuccess": True,
+            "data": "Profile updated successfully.",
+            "error": None
+        }, status=drf_status.HTTP_200_OK)
+    except Exception as e:
+        return JsonResponse({
+            "isSuccess": False,
+            "error": str(e)
+        }, status=drf_status.HTTP_500_INTERNAL_SERVER_ERROR)
