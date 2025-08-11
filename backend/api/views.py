@@ -375,10 +375,28 @@ def cancel_order(request, order_id):
         with transaction.atomic():
             order.status = cancelled_status
             order.save()
+
+            deliveries = order.deliveries.all()
+            for delivery in deliveries:
+                delivery.status = cancelled_status
+                delivery.active = False  
+                delivery.save()
+
+            # Update related payments status
+            payment = getattr(order, 'payment', None)
+            if payment:
+                payment.status = cancelled_status
+                payment.active = False  
+                payment.save()
         
         return Response({
             "isSuccess": True,
-            "data": {"order_id": order.order_id, "status": cancelled_status.status_id},
+            "data": {
+                "order_id": order.order_id,
+                "status": cancelled_status.status_id,
+                "deliveries_updated": deliveries.count(),
+                "payment_updated": payment.payment_id if payment else None
+            },
             "error": None
         }, status=drf_status.HTTP_200_OK)
     
