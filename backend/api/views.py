@@ -398,7 +398,6 @@ def product_price_list(request, id):
 
 @api_view(['POST'])
 @vendor_required
-@permission_classes([IsOwner])
 @require_access_token
 def product_price_create(request, id):
     if not Product.objects.filter(product_id=id).exists():
