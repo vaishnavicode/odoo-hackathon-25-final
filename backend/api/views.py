@@ -942,3 +942,62 @@ def cart_clear(request):
     user_data_id = request.user.user_data_id
     Cart.objects.filter(user_id=user_data_id).delete()
     return JsonResponse({"isSuccess": True, "data": "Cart cleared successfully.", "error": None}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@customer_required
+@require_access_token
+def checkout(request):
+    try:
+        user_data_id = request.user.user_data_id
+    except AttributeError:
+        return JsonResponse({"isSuccess": False, "error": "User not found."}, status=400)
+
+    cart_items = Cart.objects.filter(user_id=user_data_id)
+    if not cart_items.exists():
+        return JsonResponse({"isSuccess": False, "error": "Cart is empty."}, status=400)
+
+    created_orders = []
+    created_payments = []
+
+    try:
+        with transaction.atomic():
+            for cart_item in cart_items:
+                payment_data = {
+                    "invoice_type_id": 1,       
+                    "payment_percentage": 0,
+                    "status_id": 1,             
+                    "active": True,
+                }
+                payment_serializer = PaymentSerializer(data=payment_data)
+                payment_serializer.is_valid(raise_exception=True)
+                payment = payment_serializer.save()
+                created_payments.append(payment_serializer.data)
+
+                # 2️⃣ Create Order
+                order_data = {
+                    "product_id": cart_item.product_id,
+                    "user_data_id": user_data_id,
+                    "payment_id": payment.payment_id,
+                    "status_id": 1,  # started
+                    "timestamp_from": cart_item.timestamp_from,
+                    "timestamp_to": cart_item.timestamp_to
+                }
+                order_serializer = OrderSerializer(data=order_data)
+                order_serializer.is_valid(raise_exception=True)
+                order = order_serializer.save()
+                created_orders.append(order_serializer.data)
+
+            cart_items.delete()
+
+        return JsonResponse({
+            "isSuccess": True,
+            "data": {
+                "orders": created_orders,
+                "payments": created_payments
+            },
+            "error": None
+        }, status=201)
+
+    except Exception as e:
+        return JsonResponse({"isSuccess": False, "data": None, "error": str(e)}, status=400)

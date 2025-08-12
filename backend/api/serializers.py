@@ -278,7 +278,6 @@ class WishlistSerializer(serializers.ModelSerializer):
         read_only_fields = ['wishlist_id', 'added_at']
 
 
-
 class CartSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.product_name', read_only=True)
     calculated_price = serializers.SerializerMethodField()
