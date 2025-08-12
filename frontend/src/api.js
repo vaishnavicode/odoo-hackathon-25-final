@@ -5,6 +5,7 @@ import { API_ENDPOINTS as CONSTANTS_API_ENDPOINTS } from './constants.js';
 export const API_BASE_URL = 'http://localhost:8000/api';
 
 export const API_ENDPOINTS = {
+  CATEGORIES: '/categories/',
   REGISTER: '/register/',
   LOGIN: '/login/',
   LOGOUT: '/logout/',
@@ -382,5 +383,19 @@ export const ordersAPI = {
     }
   },
 };
+
+export const fetchCategories = async () => {
+  try {
+    const response = await api.get(API_ENDPOINTS.CATEGORIES);
+    if (response.status === 200 && response.data.isSuccess) {
+      return response.data.data; 
+    }
+    return [];
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    return [];
+  }
+};
+
 
 export default api;

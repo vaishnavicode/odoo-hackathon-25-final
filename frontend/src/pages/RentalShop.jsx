@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { productsAPI } from '../api.js';
-import { ROUTES, PRODUCT_CATEGORIES } from '../constants.js';
+import { ROUTES } from '../constants.js';
 import '../styles/RentalShop.css';
 import ProductDetailModal from '../components/ProductDetailModal.jsx';
 import { useAuth } from '../App.jsx';
 import { useNavigate } from 'react-router-dom';
+import { fetchCategories } from '../api.js';
 
 
 const RentalShop = () => {
@@ -26,6 +27,7 @@ const RentalShop = () => {
   const [productPrices, setProductPrices] = useState({});
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState(null);
+  const [categories, setCategories] = useState([]);  
 
 
   const { user } = useAuth();
@@ -33,6 +35,18 @@ const RentalShop = () => {
 
   // extract role
   const userRoleName = user?.user_data?.user_role?.user_role_name?.toLowerCase();
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const cats = await fetchCategories();
+        setCategories(cats.map(cat => cat.category_name));
+      } catch {
+        setCategories([]);
+      }
+    };
+    loadCategories();
+  }, []);
 
 
   useEffect(() => {
@@ -210,21 +224,23 @@ const RentalShop = () => {
     <div className="rental-shop-container">
       {/* Category Navigation with Create Product button inline */}
       <div className="category-nav">
-        {/* Show Create Product button only if vendor - now inline with categories */}
-      {userRoleName === 'vendor' && (
+        {userRoleName === 'vendor' && (
           <button
             className="create-product-btn"
-          onClick={() => navigate(ROUTES.CREATE_PRODUCT)}
+            onClick={() => navigate(ROUTES.CREATE_PRODUCT)}
           >
             + Create Product
           </button>
-      )}
+        )}
 
-        {PRODUCT_CATEGORIES.map((category, index) => (
+        {/* Replace PRODUCT_CATEGORIES with categories */}
+        {categories.map((category, index) => (
           <button
             key={index}
             className={`category-btn ${selectedCategory === category ? 'active' : ''}`}
-            onClick={() => setSelectedCategory(selectedCategory === category ? '' : category)}
+            onClick={() =>
+              setSelectedCategory(selectedCategory === category ? '' : category)
+            }
           >
             {category}
           </button>
