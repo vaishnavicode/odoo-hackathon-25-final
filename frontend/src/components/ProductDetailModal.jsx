@@ -152,9 +152,9 @@ if (!selectedPrice || !rentalDates.from || !rentalDates.to) {
                   Wishlist
                 </button>
                 <div className="product-description">
-                  <h3>Product descriptions</h3>
+                  <h3>Product description</h3>
+                  <p>({product.product_qty} Available)</p>
                   <p>{product.product_description || 'No description available for this product.'}</p>
-                  <button className="read-more-btn">Read More &gt;</button>
                 </div>
               </div>
               <div className="product-right">

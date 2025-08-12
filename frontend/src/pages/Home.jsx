@@ -14,9 +14,6 @@ const Home = () => {
             <Link to={ROUTES.RENTAL_SHOP} className="cta-button primary">
               Browse Products
             </Link>
-            <Link to={ROUTES.REGISTER} className="cta-button secondary">
-              Get Started
-            </Link>
           </div>
         </div>
       </div>
