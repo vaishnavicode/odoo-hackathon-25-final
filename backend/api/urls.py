@@ -36,6 +36,7 @@ urlpatterns = [
     path('user/update-profile/', update_profile_view, name='update-profile'),
 
     path('vendor/report/', vendor_report, name='vendor-report'),
+    path('vendor/orders/', vendor_orders, name='vendor-orders'),
     
     # Generic URLs
     path('statuses/', status_list, name='status-list'),
@@ -47,4 +48,5 @@ urlpatterns = [
     path('cart/add/', cart_add, name='cart-add'),
     path('cart/remove/<int:product_id>/', cart_remove, name='cart-remove'),
     path('cart/clear/', cart_clear, name='cart-clear'),
+    path('cart/checkout/', checkout, name='cart-checkout'),
 ]
