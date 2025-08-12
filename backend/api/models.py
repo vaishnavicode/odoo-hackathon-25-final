@@ -139,6 +139,7 @@ class Order(models.Model):
     user_data = models.ForeignKey(UserData, on_delete=models.PROTECT, related_name='orders')
     payment = models.ForeignKey(Payment, on_delete=models.PROTECT, related_name='orders')
     status = models.ForeignKey(Status, on_delete=models.PROTECT, related_name='orders')
+    quantity = models.PositiveIntegerField(default=1)  # Add this line
     timestamp_from = models.DateTimeField()
     timestamp_to = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)

@@ -161,11 +161,15 @@ class OrderSerializer(serializers.ModelSerializer):
     )
     user_data = UserDataSerializer(read_only=True)
     user_data_id = serializers.PrimaryKeyRelatedField(
-        queryset=UserData.objects.all(), source='user_data', write_only=True
+        queryset=UserData.objects.all(),
+        source='user_data',
+        write_only=True
     )
     payment = PaymentSerializer(read_only=True)
     payment_id = serializers.PrimaryKeyRelatedField(
-        queryset=Payment.objects.all(), source='payment', write_only=True
+        queryset=Payment.objects.all(),
+        source='payment',
+        write_only=True
     )
     status = StatusSerializer(read_only=True)
     status_id = serializers.PrimaryKeyRelatedField(
@@ -174,12 +178,14 @@ class OrderSerializer(serializers.ModelSerializer):
         write_only=True
     )
 
+    quantity = serializers.IntegerField()  
     class Meta:
         model = Order
         fields = [
             'order_id', 'product', 'product_id', 'user_data', 'user_data_id',
             'payment', 'payment_id', 'status', 'status_id',
-            'timestamp_from', 'timestamp_to', 'created_at'
+            'timestamp_from', 'timestamp_to', 'created_at',
+            'quantity' 
         ]
         extra_kwargs = {
             'created_at': {'read_only': True},

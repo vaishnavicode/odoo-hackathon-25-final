@@ -284,105 +284,15 @@ export const cartAPI = {
 
 export const ordersAPI = {
   create: async (cartData) => {
-    // Try to create order using POST first, then fall back to GET if that fails
-    console.log("Attempting to create order with cart data:", cartData);
-    
-    // Validate cart data
     if (!cartData || !Array.isArray(cartData) || cartData.length === 0) {
       throw new Error("Invalid cart data provided for checkout");
     }
-    
-    // Check if we have the required authorization token
-    const token = localStorage.getItem('access_token');
-    console.log("Authorization token available:", !!token);
-    
-    // Log the first cart item to see its structure
-    if (cartData.length > 0) {
-      console.log("First cart item structure:", cartData[0]);
-      console.log("All available fields in first item:", Object.keys(cartData[0]));
-    }
-    
-    // Try different possible ID field combinations
-    const possibleIdFields = ['product_id', 'id', 'cart_item_id', 'productId', 'productId'];
-    let productIds = [];
-    
-    for (const field of possibleIdFields) {
-      const ids = cartData.map(item => item[field]).filter(Boolean);
-      if (ids.length > 0) {
-        console.log(`Found IDs using field '${field}':`, ids);
-        productIds = ids;
-        break;
-      }
-    }
-    
-    // If no IDs found with standard fields, try to extract from any field that looks like an ID
-    if (productIds.length === 0) {
-      for (const item of cartData) {
-        for (const [key, value] of Object.entries(item)) {
-          if (typeof value === 'number' && value > 0 && key.toLowerCase().includes('id')) {
-            console.log(`Found potential ID field '${key}' with value:`, value);
-            productIds.push(value);
-          }
-        }
-      }
-    }
-    
-    console.log("Final product IDs to send:", productIds);
-    
-    if (productIds.length === 0) {
-      throw new Error("No valid product IDs found in cart data");
-    }
-    
-    try {
-      // First try POST to create endpoint with cart data
-      console.log("Trying POST to create order endpoint:", API_ENDPOINTS.ORDERS_CREATE);
-      
-      // Try different data formats that the backend might expect
-      const postDataFormats = [
-        { cart_items: cartData },
-        { product_ids: productIds },
-        { products: productIds },
-        { items: cartData },
-        { cart: cartData },
-        // Try sending just the IDs in different formats
-        { product_ids: productIds.join(',') },
-        { products: productIds.join(',') },
-        { cart_items: productIds.join(',') },
-        // Try sending the data as the backend might expect it
-        { ...cartData[0] }, // Send first item's data
-        { items: productIds }, // Send just the IDs array
-        { cart: productIds } // Send IDs as cart
-      ];
-      
-      for (const postData of postDataFormats) {
-        try {
-          console.log("Trying POST with data format:", postData);
-          const response = await api.post(API_ENDPOINTS.ORDERS_CREATE, postData);
-          console.log("Orders API POST response:", response);
-          return response.data;
-        } catch (error) {
-          console.log(`POST with format ${JSON.stringify(postData)} failed:`, error.response?.status, error.response?.data);
-          if (error.response?.status !== 400 && error.response?.status !== 422) {
-            // If it's not a validation error, break and try GET
-            break;
-          }
-        }
-      }
-      
-      // If all POST attempts failed, try GET
-      console.log("All POST attempts failed, trying GET to orders endpoint:", API_ENDPOINTS.ORDERS);
-      const queryParams = `?cart_items=${productIds.join(',')}`;
-      console.log("GET request URL:", `${API_ENDPOINTS.ORDERS}${queryParams}`);
-      const response = await api.get(`${API_ENDPOINTS.ORDERS}${queryParams}`);
-      console.log("Orders API GET response:", response);
-      return response.data;
-      
-    } catch (error) {
-      console.log("All checkout attempts failed:", error);
-      throw error;
-    }
+    console.log("Sending cart data to create orders:", cartData);
+    const response = await api.post(API_ENDPOINTS.ORDERS_CREATE, cartData);
+    return response.data;
   },
 };
+
 
 export const fetchCategories = async () => {
   try {

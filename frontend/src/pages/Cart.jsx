@@ -142,138 +142,93 @@ const Cart = () => {
     }
   };
 
-  const handleCheckout = async () => {
-    try {
-      setProcessing(true);
-      console.log("Starting checkout process...");
-      console.log("Cart items to checkout:", cartItems);
-      
-      // Validate that we have cart items
-      if (!cartItems || cartItems.length === 0) {
-        toast.error("Cannot checkout with empty cart.");
-        return;
-      }
-      
-             // Extract product IDs for debugging
-       const productIds = cartItems.map(item => ({
-         product_id: item.product_id,
-         id: item.id,
-         cart_item_id: item.cart_item_id,
-         product_name: item.product_name
-       }));
-       console.log("Product IDs for checkout:", productIds);
-       
-       // Also log the raw cart items to see the exact structure
-       console.log("Raw cart items structure:", JSON.stringify(cartItems, null, 2));
-       
-       // Check if we have any numeric ID fields
-       const numericFields = cartItems.map(item => {
-         const numeric = {};
-         for (const [key, value] of Object.entries(item)) {
-           if (typeof value === 'number' && value > 0) {
-             numeric[key] = value;
-           }
-         }
-         return numeric;
-       });
-       console.log("Numeric fields in cart items:", numericFields);
-      
-      const response = await ordersAPI.create(cartItems);
-      console.log("Checkout response:", response);
-      
-      if (response && response.isSuccess) {
-        console.log("Checkout successful, response:", response);
-        toast.success("Order placed successfully! Clearing your cart...");
-        
-        // Clear cart from backend after successful checkout
-        try {
-          console.log("Attempting to clear cart from backend...");
-          const clearResponse = await cartAPI.clear();
-          console.log("Cart clear response:", clearResponse);
-          
-          if (clearResponse && clearResponse.isSuccess) {
-            console.log("Cart successfully cleared from backend");
-            setCartItems([]);
-            toast.success("Order placed successfully! Your cart has been cleared.");
-          } else {
-            console.log("Cart clear response indicates failure:", clearResponse);
-            setCartItems([]);
-            toast.success("Order placed successfully! Please refresh to see updated cart.");
-          }
-        } catch (clearError) {
-          console.error("Failed to clear cart after checkout:", clearError);
-          console.error("Clear error response:", clearError.response);
-          // Even if clearing fails, we still show success for the order
-          setCartItems([]);
-          toast.success("Order placed successfully! Please refresh to see updated cart.");
-        }
-        
-        // Refresh cart data to ensure consistency with backend
-        setTimeout(() => {
-          fetchCart();
-        }, 1000);
-        
-        // Optionally redirect to order confirmation page
-        // window.location.href = '/orders';
-      } else if (response && response.data) {
-        // Some APIs return success data directly without isSuccess flag
-        console.log("Checkout successful (alternative response format), response:", response);
-        toast.success("Order placed successfully! Clearing your cart...");
-        
-        // Clear cart from backend after successful checkout
-        try {
-          console.log("Attempting to clear cart from backend...");
-          const clearResponse = await cartAPI.clear();
-          console.log("Cart clear response:", clearResponse);
-          
-          if (clearResponse && clearResponse.isSuccess) {
-            console.log("Cart successfully cleared from backend");
-            setCartItems([]);
-            toast.success("Order placed successfully! Your cart has been cleared.");
-          } else {
-            console.log("Cart clear response indicates failure:", clearResponse);
-            setCartItems([]);
-            toast.success("Order placed successfully! Please refresh to see updated cart.");
-          }
-        } catch (clearError) {
-          console.error("Failed to clear cart after checkout:", clearError);
-          console.error("Clear error response:", clearError.response);
-          // Even if clearing fails, we still show success for the order
-          setCartItems([]);
-          toast.success("Order placed successfully! Please refresh to see updated cart.");
-        }
-        
-        // Refresh cart data to ensure consistency with backend
-        setTimeout(() => {
-          fetchCart();
-        }, 1000);
-      } else {
-        const errorMsg = response?.error || response?.message || "Failed to place order.";
-        console.error("Checkout failed:", errorMsg);
-        toast.error(errorMsg);
-      }
-    } catch (error) {
-      console.error("Checkout error:", error);
-      console.error("Error response:", error.response);
-      console.error("Error status:", error.response?.status);
-      console.error("Error message:", error.message);
-      
-      let errorMessage = "Something went wrong during checkout.";
-      if (error.response?.status === 405) {
-        errorMessage = "Checkout method not allowed. Please contact support.";
-      } else if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      toast.error(errorMessage);
-    } finally {
-      setProcessing(false);
+const handleCheckout = async () => {
+  try {
+    setProcessing(true);
+    console.log("Starting checkout process...");
+    console.log("Cart items to checkout:", cartItems);
+
+    if (!cartItems || cartItems.length === 0) {
+      toast.error("Cannot checkout with empty cart.");
+      return;
     }
-  };
+
+    
+    
+    const cartItemsToSend = cartItems.map(item => ({
+      product_id: item.product_id,
+      quantity: item.quantity ?? 1,         
+      timestamp_from: item.timestamp_from, 
+      timestamp_to: item.timestamp_to,
+    }));
+
+    console.log("Prepared cart items for checkout:", cartItemsToSend);
+    console.log("Payload to backend:", JSON.stringify(cartItemsToSend, null, 2));
+    
+    const response = await ordersAPI.create(cartItemsToSend);
+    console.log("Checkout response:", response);
+
+    const handleCartClear = async () => {
+      try {
+        const clearResponse = await cartAPI.clear();
+        console.log("Cart clear response:", clearResponse);
+        if (clearResponse && clearResponse.isSuccess) {
+          setCartItems([]);
+          toast.success("Order placed successfully! Your cart has been cleared.");
+        } else {
+          setCartItems([]);
+          toast.success("Order placed successfully! Please refresh to see updated cart.");
+        }
+      } catch (clearError) {
+        console.error("Failed to clear cart after checkout:", clearError);
+        setCartItems([]);
+        toast.success("Order placed successfully! Please refresh to see updated cart.");
+      }
+      setTimeout(() => {
+        fetchCart();
+      }, 1000);
+    };
+
+    if (response && response.isSuccess) {
+      toast.success("Order placed successfully! Clearing your cart...");
+      await handleCartClear();
+    } else if (response && response.data) {
+      toast.success("Order placed successfully! Clearing your cart...");
+      await handleCartClear();
+    } else {
+      const errorMsg = response?.error || response?.message || "Failed to place order.";
+      console.error("Checkout failed:", errorMsg);
+      toast.error(errorMsg);
+    }
+
+  } catch (error) {
+    console.error("Checkout error:", error);
+    console.error("Error response:", error.response);
+    console.error("Error status:", error.response?.status);
+    console.error("Error message:", error.message);
+
+    let errorMessage = "Something went wrong during checkout.";
+
+    if (error.response?.status === 405) {
+      errorMessage = "Checkout method not allowed. Please contact support.";
+    } else if (error.response?.data?.error) {
+      if (typeof error.response.data.error === "string") {
+        errorMessage = error.response.data.error;
+      } else if (typeof error.response.data.error === "object") {
+        errorMessage = Object.values(error.response.data.error).flat().join(" ");
+      }
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
+    toast.error(errorMessage);
+  } finally {
+    setProcessing(false);
+  }
+};
+
 
   if (loading) {
     return <div className="cart-container"><div className="loading">Loading cart...</div></div>;

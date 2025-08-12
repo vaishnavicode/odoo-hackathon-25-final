@@ -485,51 +485,81 @@ def order_list(request, id=None):
 
 
 @api_view(['POST'])
-@customer_required
 @permission_classes([IsOwner])
 @require_access_token
 def order_create(request):
-    data = request.data.copy()
+    data_list = request.data
 
     try:
         user_data_id = request.user.user_data_id
     except AttributeError:
         return JsonResponse({"isSuccess": False, "error": "User data not found for this user."}, status=status.HTTP_400_BAD_REQUEST)
 
-    if not Product.objects.filter(product_id=data.get('product_id')).exists():
-        return JsonResponse({"isSuccess": False, "error": "Invalid product ID."}, status=status.HTTP_400_BAD_REQUEST)
+    if not isinstance(data_list, list):
+        return JsonResponse({"isSuccess": False, "error": "Expected a list of orders."}, status=status.HTTP_400_BAD_REQUEST)
+
+    created_orders = []
+    created_payments = []
 
     try:
         with transaction.atomic():
-            payment_data = {
-                "invoice_type_id": 1,
-                "payment_percentage": 0,
-                "status_id": 1,  
-                "active": True,
-            }
-            payment_serializer = PaymentSerializer(data=payment_data)
-            if not payment_serializer.is_valid():
-                return JsonResponse({"isSuccess": False, "error": payment_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-            payment = payment_serializer.save()
+            for data in data_list:
+                product_id = data.get('product_id')
+                quantity = data.get('quantity')
 
-            order_data = {
-                "product_id": data.get("product_id"),
-                "user_data_id": user_data_id,
-                "payment_id": payment.payment_id,
-                "status_id": 1, 
-                "timestamp_from": data.get("timestamp_from"),
-                "timestamp_to": data.get("timestamp_to")
-            }
-            order_serializer = OrderSerializer(data=order_data)
-            if not order_serializer.is_valid():
-                raise ValueError(order_serializer.errors)
-            order_serializer.save()
+                if not Product.objects.filter(product_id=product_id).exists():
+                    return JsonResponse({"isSuccess": False, "error": f"Invalid product ID: {product_id}"}, status=status.HTTP_400_BAD_REQUEST)
+
+                if quantity is None or quantity <= 0:
+                    return JsonResponse({"isSuccess": False, "error": "Quantity is required and must be greater than zero."}, status=status.HTTP_400_BAD_REQUEST)
+
+                # Fetch fresh product instance here to check stock and update later
+                product = Product.objects.select_for_update().get(product_id=product_id)
+
+                if quantity > product.product_qty:
+                    return JsonResponse({
+                        "isSuccess": False,
+                        "error": f"Not enough stock for product '{product.product_name}'. Available: {product.product_qty}, requested: {quantity}."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                payment_data = {
+                    "invoice_type_id": 1,
+                    "payment_percentage": 0,
+                    "status_id": 1,
+                    "active": True,
+                }
+                payment_serializer = PaymentSerializer(data=payment_data)
+                if not payment_serializer.is_valid():
+                    return JsonResponse({"isSuccess": False, "error": payment_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+                payment = payment_serializer.save()
+                created_payments.append(payment_serializer.data)
+
+                order_data = {
+                    "product_id": product_id,
+                    "user_data_id": user_data_id,
+                    "payment_id": payment.payment_id,
+                    "status_id": 1,
+                    "timestamp_from": data.get("timestamp_from"),
+                    "timestamp_to": data.get("timestamp_to"),
+                    "quantity": quantity,
+                }
+                order_serializer = OrderSerializer(data=order_data)
+                if not order_serializer.is_valid():
+                    return JsonResponse({"isSuccess": False, "error": order_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+                order = order_serializer.save()
+                created_orders.append(order_serializer.data)
+
+                # Update product quantity and save
+                product.product_qty -= quantity
+                if product.product_qty < 0:
+                    raise ValueError(f"Product '{product.product_name}' stock cannot be negative.")
+                product.save()
 
         return JsonResponse({
             "isSuccess": True,
             "data": {
-                "payment": payment_serializer.data,
-                "order": order_serializer.data
+                "payments": created_payments,
+                "orders": created_orders,
             },
             "error": None
         }, status=status.HTTP_201_CREATED)
@@ -977,7 +1007,8 @@ def checkout(request):
     except AttributeError:
         return JsonResponse({"isSuccess": False, "error": "User not found."}, status=400)
 
-    cart_items = Cart.objects.filter(user_id=user_data_id)
+    cart_items = Cart.objects.filter(user=user_data_id)
+
     if not cart_items.exists():
         return JsonResponse({"isSuccess": False, "error": "Cart is empty."}, status=400)
 
@@ -986,11 +1017,22 @@ def checkout(request):
 
     try:
         with transaction.atomic():
-            for cart_item in cart_items:
+            for cart_item in cart_items.select_for_update():
+                product = Product.objects.select_for_update().get(product_id=cart_item.product.product_id)
+
+                if cart_item.quantity > product.product_qty:
+                    return JsonResponse({
+                        "isSuccess": False,
+                        "error": (
+                            f"Not enough stock for product '{product.product_name}'. "
+                            f"Available: {product.product_qty}, requested: {cart_item.quantity}."
+                        )
+                    }, status=400)
+
                 payment_data = {
-                    "invoice_type_id": 1,       
+                    "invoice_type_id": 1,
                     "payment_percentage": 0,
-                    "status_id": 1,             
+                    "status_id": 1,
                     "active": True,
                 }
                 payment_serializer = PaymentSerializer(data=payment_data)
@@ -998,19 +1040,25 @@ def checkout(request):
                 payment = payment_serializer.save()
                 created_payments.append(payment_serializer.data)
 
-                # 2️⃣ Create Order
                 order_data = {
-                    "product_id": cart_item.product_id,
+                    "product_id": product.product_id,
                     "user_data_id": user_data_id,
                     "payment_id": payment.payment_id,
-                    "status_id": 1,  # started
+                    "status_id": 1,
                     "timestamp_from": cart_item.timestamp_from,
-                    "timestamp_to": cart_item.timestamp_to
+                    "timestamp_to": cart_item.timestamp_to,
+                    "quantity": cart_item.quantity,
                 }
                 order_serializer = OrderSerializer(data=order_data)
                 order_serializer.is_valid(raise_exception=True)
                 order = order_serializer.save()
                 created_orders.append(order_serializer.data)
+
+                # Update product quantity and save
+                product.product_qty -= cart_item.quantity
+                if product.product_qty < 0:
+                    raise ValueError(f"Product '{product.product_name}' stock cannot be negative.")
+                product.save()
 
             cart_items.delete()
 
