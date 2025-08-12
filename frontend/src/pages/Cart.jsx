@@ -33,37 +33,45 @@ const Cart = () => {
     }
   };
 
-  const handleRemoveFromCart = async (itemId) => {
+  const handleRemoveFromCart = async (productId, cartItem) => {
     try {
-      // Validate that we have a valid ID
-      if (!itemId || itemId === undefined || itemId === null) {
-        toast.error("Invalid item ID. Cannot remove item.");
+      // Validate that we have a valid product ID
+      if (!productId || productId === undefined || productId === null) {
+        toast.error("Invalid product ID. Cannot remove item.");
         return;
       }
       
-      setRemovingItem(itemId);
-      console.log("Removing item with ID:", itemId);
-      console.log("ID type:", typeof itemId);
-      console.log("ID value:", itemId);
+      setRemovingItem(productId);
+      console.log("Removing cart item:", cartItem);
+      console.log("Product ID for removal:", productId);
+      console.log("ID type:", typeof productId);
+      console.log("ID value:", productId);
       
       // Log the current cart state before removal
       console.log("Cart items before removal:", cartItems);
       
-      const response = await cartAPI.remove(itemId);
+      const response = await cartAPI.remove(productId);
       console.log("Remove response:", response);
       
       if (response && response.isSuccess) {
         console.log("Remove successful, response:", response);
         toast.success("Item removed from cart successfully!");
         
-        // Instead of fetching the entire cart again, let's remove the item locally
-        // This prevents the cart from being cleared if there's a backend issue
+        // Remove all instances of the product locally since backend removes by product_id
+        // This will remove all cart items with the same product_id
         setCartItems(prevItems => {
           const updatedItems = prevItems.filter(item => {
-            const currentItemId = item.cart_item_id || item.product_id || item.id;
-            const shouldKeep = currentItemId !== itemId;
-            console.log(`Item ${currentItemId} vs ${itemId}: ${shouldKeep ? 'keeping' : 'removing'}`);
-            return shouldKeep; // Remove the item with matching ID
+            // Since we're removing by product_id, remove all items with that product
+            const shouldKeep = item.product_id !== productId;
+            
+            console.log(`Cart item comparison:`);
+            console.log(`  Current product ID: ${item.product_id}`);
+            console.log(`  Removal target product ID: ${productId}`);
+            console.log(`  Product name: ${item.product_name}`);
+            console.log(`  Quantity: ${item.quantity}`);
+            console.log(`  Action: ${shouldKeep ? 'keeping' : 'removing'}`);
+            
+            return shouldKeep; // Remove all items with matching product_id
           });
           console.log("Updated cart items:", updatedItems);
           return updatedItems;
@@ -175,15 +183,70 @@ const Cart = () => {
       
       if (response && response.isSuccess) {
         console.log("Checkout successful, response:", response);
-        toast.success("Order placed successfully! Your cart has been cleared.");
-        setCartItems([]);
+        toast.success("Order placed successfully! Clearing your cart...");
+        
+        // Clear cart from backend after successful checkout
+        try {
+          console.log("Attempting to clear cart from backend...");
+          const clearResponse = await cartAPI.clear();
+          console.log("Cart clear response:", clearResponse);
+          
+          if (clearResponse && clearResponse.isSuccess) {
+            console.log("Cart successfully cleared from backend");
+            setCartItems([]);
+            toast.success("Order placed successfully! Your cart has been cleared.");
+          } else {
+            console.log("Cart clear response indicates failure:", clearResponse);
+            setCartItems([]);
+            toast.success("Order placed successfully! Please refresh to see updated cart.");
+          }
+        } catch (clearError) {
+          console.error("Failed to clear cart after checkout:", clearError);
+          console.error("Clear error response:", clearError.response);
+          // Even if clearing fails, we still show success for the order
+          setCartItems([]);
+          toast.success("Order placed successfully! Please refresh to see updated cart.");
+        }
+        
+        // Refresh cart data to ensure consistency with backend
+        setTimeout(() => {
+          fetchCart();
+        }, 1000);
+        
         // Optionally redirect to order confirmation page
         // window.location.href = '/orders';
       } else if (response && response.data) {
         // Some APIs return success data directly without isSuccess flag
         console.log("Checkout successful (alternative response format), response:", response);
-        toast.success("Order placed successfully! Your cart has been cleared.");
-        setCartItems([]);
+        toast.success("Order placed successfully! Clearing your cart...");
+        
+        // Clear cart from backend after successful checkout
+        try {
+          console.log("Attempting to clear cart from backend...");
+          const clearResponse = await cartAPI.clear();
+          console.log("Cart clear response:", clearResponse);
+          
+          if (clearResponse && clearResponse.isSuccess) {
+            console.log("Cart successfully cleared from backend");
+            setCartItems([]);
+            toast.success("Order placed successfully! Your cart has been cleared.");
+          } else {
+            console.log("Cart clear response indicates failure:", clearResponse);
+            setCartItems([]);
+            toast.success("Order placed successfully! Please refresh to see updated cart.");
+          }
+        } catch (clearError) {
+          console.error("Failed to clear cart after checkout:", clearError);
+          console.error("Clear error response:", clearError.response);
+          // Even if clearing fails, we still show success for the order
+          setCartItems([]);
+          toast.success("Order placed successfully! Please refresh to see updated cart.");
+        }
+        
+        // Refresh cart data to ensure consistency with backend
+        setTimeout(() => {
+          fetchCart();
+        }, 1000);
       } else {
         const errorMsg = response?.error || response?.message || "Failed to place order.";
         console.error("Checkout failed:", errorMsg);
@@ -251,7 +314,7 @@ const Cart = () => {
             }
 
             return (
-                             <tr key={item.cart_item_id || item.product_id || item.id || index}>
+                             <tr key={item.product_id || item.id || index}>
                 <td>{item.product_name || 'Unknown Product'}</td>
                 <td>{quantity}</td>
                 <td>₹{unitPrice.toFixed(2)}</td>
@@ -259,35 +322,37 @@ const Cart = () => {
                 <td>
                   <button
                     className="cart-action-btn remove-btn"
-                    onClick={() => {
-                      // Try to find the correct ID field
-                      // The backend might expect cart_item_id, product_id, or just id
-                      const possibleIds = {
-                        cart_item_id: item.cart_item_id,
-                        product_id: item.product_id,
-                        id: item.id,
-                        cart_id: item.cart_id
-                      };
-                      
-                      console.log("Item to remove:", item);
-                      console.log("Available fields:", Object.keys(item));
-                      console.log("Possible IDs:", possibleIds);
-                      
-                      // Try cart_item_id first, then product_id, then id
-                      const itemId = item.cart_item_id || item.product_id || item.id;
-                      console.log("Selected ID:", itemId);
-                      console.log("ID type:", typeof itemId);
-                      
-                      if (!itemId) {
-                        toast.error("Cannot identify item to remove. Please try again.");
-                        return;
-                      }
-                      
-                      handleRemoveFromCart(itemId);
-                    }}
-                                         disabled={removingItem === (item.cart_item_id || item.product_id || item.id)}
+                                         onClick={() => {
+                                               // For cart removal, the backend expects product_id
+                        // This is because the backend removes all instances of a specific product from cart
+                        const possibleIds = {
+                          product_id: item.product_id,
+                          id: item.id,
+                          cart_item_id: item.cart_item_id,
+                          cart_id: item.cart_id
+                        };
+                        
+                        console.log("Item to remove:", item);
+                        console.log("Available fields:", Object.keys(item));
+                        console.log("Possible IDs:", possibleIds);
+                        
+                        // Use product_id first as that's what the backend expects for removal
+                        // This will remove all instances of the same product from cart
+                        const itemId = item.product_id || item.id;
+                        console.log("Selected product ID for removal:", itemId);
+                        console.log("ID type:", typeof itemId);
+                        
+                        if (!itemId) {
+                          toast.error("Cannot identify product to remove. Please try again.");
+                          return;
+                        }
+                        
+                        // Pass additional context to help with debugging
+                        handleRemoveFromCart(itemId, item);
+                     }}
+                                         disabled={removingItem === (item.product_id || item.id)}
                    >
-                     {removingItem === (item.cart_item_id || item.product_id || item.id) ? 'Removing...' : 'Remove'}
+                     {removingItem === (item.product_id || item.id) ? 'Removing...' : 'Remove'}
                    </button>
                 </td>
               </tr>
