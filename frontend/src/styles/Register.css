@@ -1,0 +1,250 @@
+.register-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+.register-card {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  padding: 40px;
+  width: 100%;
+  max-width: 450px;
+  position: relative;
+}
+
+.register-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.register-header h1 {
+  color: #2563eb;
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0;
+}
+
+.home-link {
+  background: #2563eb;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.home-link:hover {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.form-group input {
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: #f9fafb;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #2563eb;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.form-group input.error {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+.form-group input.error:focus {
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.password-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input input {
+  flex: 1;
+  padding-right: 50px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.3s ease;
+}
+
+.password-toggle:hover {
+  color: #2563eb;
+}
+
+.error-message {
+  color: #dc2626;
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+
+.general-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.signin-btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 14px 24px;
+  border-radius: 25px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+}
+
+.signin-btn:hover:not(:disabled) {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3);
+}
+
+.signin-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.register-links {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.register-links p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.login-link {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.login-link:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .register-container {
+    padding: 10px;
+  }
+  
+  .register-card {
+    padding: 30px 20px;
+  }
+  
+  .register-header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+  
+  .home-link {
+    align-self: center;
+  }
+}
+
+
+.toggle-switch {
+  position: relative;
+  width: 220px;
+  height: 40px;
+  background: #ddd;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  user-select: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.toggle-switch input[type="radio"] {
+  display: none;
+}
+
+.toggle-switch label {
+  flex: 1;
+  text-align: center;
+  line-height: 40px;
+  z-index: 2;
+  color: #555;
+  transition: color 0.3s ease;
+}
+
+.toggle-switch input[type="radio"]:checked + label {
+  color: white;
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 110px;
+  height: 34px;
+  background-color: #007bff;
+  border-radius: 30px;
+  transition: left 0.3s ease;
+  z-index: 1;
+}
+
+#vendor:checked ~ .toggle-slider {
+  left: 107px; 
+}
