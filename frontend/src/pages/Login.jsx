@@ -75,7 +75,6 @@ const Login = () => {
       <div className="login-card">
         <div className="login-header">
           <h1>Rental Management</h1>
-          <Link to={ROUTES.HOME} className="home-link">Home</Link>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">

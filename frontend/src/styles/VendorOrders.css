@@ -1,9 +1,11 @@
 .vendor-orders-container {
   padding: 20px;
+  text-align: center;
 }
 
 .vendor-orders-container h1 {
   margin-bottom: 20px;
+  text-align: center;
 }
 
 .orders-table {
@@ -20,6 +22,7 @@
 
 .orders-table th {
   background-color: #f4f4f4;
+  color: black;
 }
 
 .loading {
