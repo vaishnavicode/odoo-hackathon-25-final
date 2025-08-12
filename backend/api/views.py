@@ -854,6 +854,47 @@ def vendor_report(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@api_view(['GET'])
+@vendor_required
+@require_access_token
+def vendor_orders(request, id=None):
+    try:
+        vendor_id = request.user.user_data_id
+    except AttributeError:
+        return JsonResponse(
+            {"isSuccess": False, "error": "User data not found for this user."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    orders = Order.objects.filter(product__created_by_id=vendor_id)
+
+    if id:
+        orders = orders.filter(order_id=id)
+        if not orders.exists():
+            return JsonResponse(
+                {"isSuccess": False, "error": "Invalid order ID for this vendor."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    paginator = PageNumberPagination()
+    paginator.page_size = 10
+    result_page = paginator.paginate_queryset(orders, request)
+    serializer = OrderSerializer(result_page, many=True)
+
+    return JsonResponse({
+        "isSuccess": True,
+        "data": {
+            "results": serializer.data,
+            "total_items": paginator.page.paginator.count,
+            "total_pages": paginator.page.paginator.num_pages,
+            "current_page": paginator.page.number,
+            "next": paginator.get_next_link(),
+            "previous": paginator.get_previous_link()
+        },
+        "error": None
+    }, status=status.HTTP_200_OK)
+
+
 
 @api_view(['GET'])
 @customer_required

@@ -36,6 +36,7 @@ urlpatterns = [
     path('user/update-profile/', update_profile_view, name='update-profile'),
 
     path('vendor/report/', vendor_report, name='vendor-report'),
+    path('vendor/orders/', vendor_orders, name='vendor-orders'),
     
     # Generic URLs
     path('statuses/', status_list, name='status-list'),
