@@ -233,7 +233,8 @@ def logout_user_view(request):
 
 @api_view(['GET'])
 def product_list(request):
-    products = Product.objects.all().order_by('product_id')
+    products = Product.objects.filter(active=True).order_by('product_id')
+
 
     # Get page size from query parameters, default to 10
     page_size = request.GET.get('page_size', 10)
