@@ -18,7 +18,6 @@ const CreateProduct = () => {
   // Pricing fields
   const [price, setPrice] = useState('');
   const [timeDuration, setTimeDuration] = useState('');
-  const [pricingQty, setPricingQty] = useState(1);
   
   // UI state
   const [loading, setLoading] = useState(false);
@@ -64,15 +63,12 @@ const CreateProduct = () => {
 
     if (!price || price <= 0) return setError('Price is required and must be greater than 0');
     if (!timeDuration) return setError('Time duration is required');
-    if (pricingQty <= 0) return setError('Quantity must be at least 1');
 
     setLoading(true);
     try {
       const response = await productsAPI.createPrice(createdProductId, {
-        price: parseFloat(price),
+        price: parseInt(price),
         time_duration: timeDuration,
-        quantity: pricingQty,
-        product_id: createdProductId,
       });
 
       if (response.isSuccess) {
@@ -102,7 +98,6 @@ const CreateProduct = () => {
     setDescription('');
     setPrice('');
     setTimeDuration('');
-    setPricingQty(1);
     setStep(1);
     setCreatedProductId(null);
     setError(null);
@@ -183,8 +178,8 @@ const CreateProduct = () => {
             className="form-input"
             placeholder="Enter price"
             value={price}
-            min="0.01"
-            step="0.01"
+            min="1"
+            step="1"
             onChange={e => setPrice(e.target.value)}
             required
           />
@@ -205,17 +200,7 @@ const CreateProduct = () => {
             ))}
           </select>
 
-          <label htmlFor="pricingQty" className="form-label">Quantity for this pricing</label>
-          <input
-            id="pricingQty"
-            type="number"
-            className="form-input"
-            placeholder="Quantity"
-            value={pricingQty}
-            min={1}
-            onChange={e => setPricingQty(Number(e.target.value))}
-            required
-          />
+
 
           {error && <p className="error-message">{error}</p>}
 
