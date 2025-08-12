@@ -887,7 +887,6 @@ def vendor_orders(request, id=None):
 
 
 @api_view(['GET'])
-@customer_required
 @permission_classes([IsOwner])
 @require_access_token
 def cart_list(request):
@@ -899,7 +898,6 @@ def cart_list(request):
 
 
 @api_view(['POST'])
-@customer_required
 @require_access_token
 def cart_add(request):
     user_data_id = request.user.user_data_id
@@ -915,14 +913,12 @@ def cart_add(request):
         return JsonResponse({"isSuccess": False, "error": "Both timestamp_from and timestamp_to are required."}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        # Parse datetime safely (handles Z and timezones)
         timestamp_from = parse_datetime(timestamp_from_str)
         timestamp_to = parse_datetime(timestamp_to_str)
 
         if not timestamp_from or not timestamp_to:
             raise ValueError("Invalid datetime format. Use ISO 8601 format like 2025-08-15T10:00:00Z.")
 
-        # Ensure timezone aware
         if timezone.is_naive(timestamp_from):
             timestamp_from = make_aware(timestamp_from)
         if timezone.is_naive(timestamp_to):
@@ -950,7 +946,6 @@ def cart_add(request):
 
 
 @api_view(['DELETE'])
-@customer_required
 @permission_classes([IsOwner])
 @require_access_token
 def cart_remove(request, product_id):
@@ -965,7 +960,6 @@ def cart_remove(request, product_id):
 
 
 @api_view(['DELETE'])
-@customer_required
 @permission_classes([IsOwner])
 @require_access_token
 def cart_clear(request):
@@ -976,7 +970,6 @@ def cart_clear(request):
 
 
 @api_view(['POST'])
-@customer_required
 @require_access_token
 def checkout(request):
     try:
