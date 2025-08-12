@@ -51,6 +51,7 @@ export const ROUTES = {
   CREATE_PRODUCT: '/create-product',
   FORGOT_PASSWORD: '/forgot-password',
   RESET_PASSWORD: '/reset-password',
+  VENDOR_ORDERS: '/vendor-orders', 
 };
 
 // Product Categories (placeholder)

@@ -27,6 +27,7 @@ import ResetPassword from './pages/ResetPassword.jsx';
 // Import components
 import Header from './components/Header.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import VendorOrders from './pages/VendorOrders.jsx';
 
 // Create Auth Context
 const AuthContext = createContext();
@@ -102,6 +103,23 @@ function App() {
 
               
               {/* Protected Routes */}
+              <Route
+                path={ROUTES.VENDOR_ORDERS}
+                element={
+                  <ProtectedRoute>
+                    <VendorOrders />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path={ROUTES.RENTAL_SHOP}
+                element={
+                  <ProtectedRoute>
+                    <RentalShop />
+                  </ProtectedRoute>
+                }
+              />
+
               <Route path={ROUTES.CREATE_PRODUCT} element={
                   <ProtectedRoute>
                     <CreateProduct />

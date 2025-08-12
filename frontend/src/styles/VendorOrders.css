@@ -1,0 +1,32 @@
+.vendor-orders-container {
+  padding: 20px;
+}
+
+.vendor-orders-container h1 {
+  margin-bottom: 20px;
+}
+
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.orders-table th,
+.orders-table td {
+  padding: 10px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+.orders-table th {
+  background-color: #f4f4f4;
+}
+
+.loading {
+  font-size: 16px;
+  color: #555;
+}
+
+.error {
+  color: red;
+}

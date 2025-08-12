@@ -10,6 +10,7 @@ export const API_ENDPOINTS = {
   LOGOUT: '/logout/',
   FORGOT_PASSWORD: CONSTANTS_API_ENDPOINTS.FORGOT_PASSWORD,
   RESET_PASSWORD: CONSTANTS_API_ENDPOINTS.RESET_PASSWORD,
+  USER_PRODUCTS: '/user/products/',
 
   PRODUCTS: '/products/',
   PRODUCT_CREATE: '/products/create/',
@@ -28,6 +29,7 @@ export const API_ENDPOINTS = {
   USER_PROFILE: '/user/profile/',
 
   VENDOR_REPORT: '/vendor/report/',
+  VENDOR_ORDERS: '/vendor/orders/',
 
   CART_ADD: '/cart/add/',
   CART_GET: '/cart/',
@@ -131,6 +133,11 @@ export const authAPI = {
     // Fetch profile data (user and wishlist)
     const response = await api.get(API_ENDPOINTS.USER_PROFILE);
     return response.data;
+  },
+  fetchUserProducts: async () => {
+    // Fetch profile data (user and wishlist)
+    const response = await api.get(API_ENDPOINTS.USER_PRODUCTS);
+    return response.data;
   }
 };
 
@@ -196,6 +203,10 @@ export const vendorAPI = {
     const response = await api.get(API_ENDPOINTS.VENDOR_REPORT);
     return response.data;
   },
+  getVendorOrders: async () => {
+    const response = await api.get(API_ENDPOINTS.VENDOR_ORDERS);
+    return response.data;
+  }
 };
 
 export const cartAPI = {

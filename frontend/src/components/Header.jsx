@@ -37,7 +37,7 @@ const Header = () => {
           {isAuthenticated && userRoleName === 'vendor' && (
             <>
               <Link to={ROUTES.REPORTING} className="nav-link">Reporting</Link>
-              <Link to={ROUTES.ORDERS} className="nav-link">Orders</Link>
+              <Link to={ROUTES.VENDOR_ORDERS} className="nav-link">Orders</Link>
             </>
           )}
         </nav>
@@ -83,11 +83,15 @@ const Header = () => {
               <Link to={ROUTES.CART} onClick={toggleMobileMenu}>Cart</Link>
               <Link to={ROUTES.PROFILE} onClick={toggleMobileMenu}>Profile</Link>
               {userRoleName === 'vendor' && (
-                <Link to={ROUTES.REPORTING} onClick={toggleMobileMenu}>Reporting</Link>
+                <>
+                  <Link to={ROUTES.REPORTING} onClick={toggleMobileMenu}>Reporting</Link>
+                  <Link to={ROUTES.VENDOR_ORDERS} onClick={toggleMobileMenu}>Orders</Link>
+                </>
               )}
               <button onClick={() => { handleLogout(); toggleMobileMenu(); }}>Logout</button>
             </>
           )}
+
           <Link to={ROUTES.CONTACT} onClick={toggleMobileMenu}>Contact us</Link>
         </nav>
       )}

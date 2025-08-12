@@ -658,21 +658,12 @@ def category_list(request):
 def user_profile(request):
     user = request.user
 
-    user_data = {
-        "user_data_id": user.user_data_id,
-        "user_name": user.user_name,
-        "user_email": user.user_email,
-        "user_contact": user.user_contact,
-        "user_address": user.user_address,
-        "active": user.active,
-        "created_at": user.created_at,
-        "updated_at": user.updated_at,
-    }
+    user_serializer = UserDataSerializer(user)
 
     wishlist_qs = Wishlist.objects.filter(user=user).select_related('product')
 
     paginator = PageNumberPagination()
-    paginator.page_size = 10  
+    paginator.page_size = 10
     wishlist_page = paginator.paginate_queryset(wishlist_qs, request)
 
     wishlist_data = [
@@ -690,7 +681,7 @@ def user_profile(request):
     return JsonResponse({
         "isSuccess": True,
         "data": {
-            "user": user_data,
+            "user": user_serializer.data,
             "wishlist": {
                 "results": wishlist_data,
                 "total_items": paginator.page.paginator.count,
