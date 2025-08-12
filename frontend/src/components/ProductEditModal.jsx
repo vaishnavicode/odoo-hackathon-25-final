@@ -135,10 +135,13 @@ const ProductEditModal = ({ product, open, onClose, onSaveSuccess }) => {
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose}>&times;</button>
         <h2>Edit Product</h2>
+        
         {loading ? (
-          <p>Loading product data...</p>
+          <div className="loading-overlay">
+            <div className="loading-spinner"></div>
+          </div>
         ) : error ? (
-          <p className="error">{error}</p>
+          <div className="error-message">{error}</div>
         ) : (
           <form
             onSubmit={e => {
@@ -146,84 +149,122 @@ const ProductEditModal = ({ product, open, onClose, onSaveSuccess }) => {
               handleSave();
             }}
           >
-            <label>
-              Product Name:
-              <input
-                name="product_name"
-                type="text"
-                value={formData.product_name}
-                onChange={handleInputChange}
-                required
-              />
-            </label>
+            {/* Product Information Section */}
+            <div className="form-section">
+              <h3>Product Information</h3>
+              
+              <div className="form-group">
+                <label htmlFor="product_name">Product Name</label>
+                <input
+                  id="product_name"
+                  name="product_name"
+                  type="text"
+                  value={formData.product_name}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="Enter product name"
+                />
+              </div>
 
-            <label>
-              Description:
-              <textarea
-                name="product_description"
-                value={formData.product_description}
-                onChange={handleInputChange}
-                rows={4}
-              />
-            </label>
+              <div className="form-group">
+                <label htmlFor="product_description">Description</label>
+                <textarea
+                  id="product_description"
+                  name="product_description"
+                  value={formData.product_description}
+                  onChange={handleInputChange}
+                  rows={4}
+                  placeholder="Enter product description"
+                />
+              </div>
 
-            <label>
-              Quantity:
-              <input
-                name="product_qty"
-                type="number"
-                min="0"
-                value={formData.product_qty}
-                onChange={handleInputChange}
-                required
-              />
-            </label>
+              <div className="form-group">
+                <label htmlFor="product_qty">Quantity</label>
+                <input
+                  id="product_qty"
+                  name="product_qty"
+                  type="number"
+                  min="0"
+                  value={formData.product_qty}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="Enter quantity"
+                />
+              </div>
 
-            <label>
-              Active:
-              <input
-                name="active"
-                type="checkbox"
-                checked={formData.active}
-                onChange={handleInputChange}
-              />
-            </label>
+              <div className="checkbox-group">
+                <input
+                  id="active"
+                  name="active"
+                  type="checkbox"
+                  checked={formData.active}
+                  onChange={handleInputChange}
+                />
+                <label htmlFor="active">Active Product</label>
+              </div>
+            </div>
 
             <hr />
 
-            <h3>Prices</h3>
-            {prices.map((price, idx) => (
-              <div key={price.product_price_id || idx} className="price-row">
-                <input
-                  type="number"
-                  placeholder="Price"
-                  value={price.price}
-                  min="0"
-                  onChange={e => handlePriceChange(idx, 'price', e.target.value)}
-                  required
-                />
-                <input
-                  type="text"
-                  placeholder="Time Duration"
-                  value={price.time_duration}
-                  onChange={e => handlePriceChange(idx, 'time_duration', e.target.value)}
-                  required
-                />
-                <button type="button" onClick={() => handleRemovePrice(idx)} className="remove-price-btn">
-                  &times;
+            {/* Prices Section */}
+            <div className="form-section">
+              <h3>Pricing Information</h3>
+              
+              <div className="prices-section">
+                {prices.map((price, idx) => (
+                  <div key={price.product_price_id || idx} className="price-item">
+                    <div className="price-item-header">
+                      <span className="price-item-title">Price Option {idx + 1}</span>
+                      <button 
+                        type="button" 
+                        onClick={() => handleRemovePrice(idx)} 
+                        className="remove-price-btn"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    
+                    <div className="price-fields">
+                      <div className="form-group">
+                        <label htmlFor={`price-${idx}`}>Price (₹)</label>
+                        <input
+                          id={`price-${idx}`}
+                          type="number"
+                          placeholder="0.00"
+                          value={price.price}
+                          min="0"
+                          step="0.01"
+                          onChange={e => handlePriceChange(idx, 'price', e.target.value)}
+                          required
+                        />
+                      </div>
+                      
+                      <div className="form-group">
+                        <label htmlFor={`duration-${idx}`}>Time Duration</label>
+                        <input
+                          id={`duration-${idx}`}
+                          type="text"
+                          placeholder="e.g., 1 hour, 1 day"
+                          value={price.time_duration}
+                          onChange={e => handlePriceChange(idx, 'time_duration', e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                <button type="button" onClick={handleAddPrice} className="add-price-btn">
+                  + Add New Price Option
                 </button>
               </div>
-            ))}
-
-            <button type="button" onClick={handleAddPrice} className="add-price-btn">
-              + Add Price
-            </button>
+            </div>
 
             <div className="modal-actions">
-              <button type="submit" disabled={saving}>
+              <button type="submit" className="save-btn" disabled={saving}>
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
-              <button type="button" onClick={onClose} disabled={saving}>
+              <button type="button" className="cancel-btn" onClick={onClose} disabled={saving}>
                 Cancel
               </button>
             </div>

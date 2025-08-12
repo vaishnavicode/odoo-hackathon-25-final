@@ -103,7 +103,7 @@ const Profile = () => {
   if (error) return <p className="error">{error}</p>;
   if (!profile) return null;
 
-  const { user, wishlist } = profile;
+  const { user } = profile;
   const roleName = user.user_role?.user_role_name || "N/A";
 
   return (
@@ -119,43 +119,67 @@ const Profile = () => {
         <p><strong>Joined:</strong> {new Date(user.created_at).toLocaleDateString()}</p>
       </div>
 
-      <h2>My Wishlist</h2>
-      {wishlist.results.length === 0 ? (
-        <p>No items in wishlist.</p>
-      ) : (
-        <ul className="wishlist-list">
-          {wishlist.results.map((item) => (
-            <li key={item.product_id}>
-              <strong>{item.product_name}</strong> — {item.product_description} (Qty: {item.product_qty}, Likes: {item.likes})
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <div className="pagination-info">
-        <p>
-          Page {wishlist.current_page} of {wishlist.total_pages} — Total items: {wishlist.total_items}
-        </p>
-      </div>
-
       {/* Vendor Products Section */}
       {roleName.toLowerCase() === 'vendor' && (
         <div className="vendor-products">
-          <h2>My Products</h2>
+          <div className="vendor-header">
+            <h2>My Products</h2>
+            <p className="vendor-subtitle">Manage your product listings and inventory</p>
+          </div>
+          
           {loadingProducts ? (
-            <p>Loading products...</p>
+            <div className="loading-state">
+              <div className="loading-spinner"></div>
+              <p>Loading your products...</p>
+            </div>
           ) : products.length === 0 ? (
-            <p>You have no products listed.</p>
+            <div className="empty-state">
+              <div className="empty-icon">📦</div>
+              <h3>No Products Yet</h3>
+              <p>Start building your inventory by adding your first product</p>
+            </div>
           ) : (
             <div className="product-cards-container">
               {products.map((product) => (
                 <div key={product.product_id} className="product-card">
-                  <h3>{product.product_name}</h3>
-                  <p>{product.product_description}</p>
-                  <p><strong>Quantity:</strong> {product.product_qty}</p>
-                  <div className="product-card-buttons">
-                    <button onClick={() => handleUpdate(product)}>Update</button>
-                    <button onClick={() => handleDelete(product.product_id)}>Delete</button>
+                  <div className="product-header">
+                    <h3 className="product-name">{product.product_name}</h3>
+                    <div className="product-status">
+                      <span className={`status-badge ${product.active ? 'active' : 'inactive'}`}>
+                        {product.active ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="product-content">
+                    <p className="product-description">{product.product_description}</p>
+                    <div className="product-details">
+                      <div className="detail-item">
+                        <span className="detail-label">Quantity:</span>
+                        <span className="detail-value">{product.product_qty}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">ID:</span>
+                        <span className="detail-value">#{product.product_id}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="product-card-actions">
+                    <button 
+                      className="action-btn update-btn"
+                      onClick={() => handleUpdate(product)}
+                    >
+                      <i className="fas fa-edit"></i>
+                      Update
+                    </button>
+                    <button 
+                      className="action-btn delete-btn"
+                      onClick={() => handleDelete(product.product_id)}
+                    >
+                      <i className="fas fa-trash"></i>
+                      Delete
+                    </button>
                   </div>
                 </div>
               ))}
